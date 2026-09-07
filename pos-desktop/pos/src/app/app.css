@@ -1,0 +1,20 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+app-footer {
+  flex-shrink: 0;
+}
+
+/* Sidebar shell stacks vertically on phones */
+@media (max-width: 768px) {
+  .shell-row {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,158 @@
+/* Ported from Demo-Store src/assets/HomePage.css + Bootstrap */
+/* Shopify-like type: Inter for Latin, Changa for Arabic */
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+body {
+  font-family: 'Inter', 'Changa', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, h5, .btn, .form-label {
+  letter-spacing: -0.01em;
+}
+
+/* Arabic: never letter-space (breaks letter joining), roomier line height */
+[dir="rtl"], [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3,
+[dir="rtl"] h4, [dir="rtl"] h5, [dir="rtl"] .btn, [dir="rtl"] .form-label {
+  letter-spacing: 0;
+}
+[dir="rtl"] body, body [dir="rtl"] { line-height: 1.9; }
+
+/* Modern product card (Talabat-style) */
+.modern-product-card {
+  background: #fff; border-radius: 33px; border: 1px solid #eee;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05); overflow: hidden; height: 100%;
+  display: flex; flex-direction: column; position: relative;
+  transition: all 0.2s ease-in-out; cursor: pointer;
+}
+.modern-product-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+.modern-card-image-container { position: relative; text-align: center; }
+.modern-card-img { width: 100%; height: 130px; padding: 5%; border-radius: 35px; object-fit: contain; }
+.modern-card-offer-badge { position: absolute; top: 5px; left: 0; background: #e5e9f4; color: blue; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+.modern-card-content { padding: 0 7px 8px; flex-grow: 1; display: flex; flex-direction: column; }
+.modern-card-price { font-size: 0.89rem; font-weight: 700; color: #0eb3ff; }
+.modern-card-original-price { font-size: 0.85rem; color: #888; text-decoration: line-through; margin-left: 6px; }
+.modern-card-variant-name { font-size: 0.8rem; color: #a05353; }
+mark { background: #fffb87; padding: 0; }
+
+/* Category scroller */
+.category-scroller-wrapper { position: relative; display: flex; align-items: center; }
+.category-scroller-container { display: flex; overflow-x: auto; padding-bottom: 1rem; scrollbar-width: none; scroll-behavior: smooth; }
+.category-scroller-container::-webkit-scrollbar { display: none; }
+.category-select-item { flex: 0 0 auto; width: 90px; text-align: center; color: #333; transition: transform 0.2s; cursor: pointer; }
+.category-select-item:hover { transform: scale(0.9); }
+.category-select-img-wrapper { width: 70px; height: 70px; margin: 0 auto 8px; border-radius: 50%; border: 2px solid transparent; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.category-select-item.active .category-select-img-wrapper { border-color: #0d6efd; }
+.category-select-img { max-width: 89%; max-height: 80%; object-fit: contain; }
+.category-select-name { font-size: 0.85rem; font-weight: 500; display: block; }
+.category-select-item.active .category-select-name { color: #0d6efd; font-weight: 600; }
+.category-scroll-arrow { background: transparent; border: none; font-size: 1.5rem; cursor: pointer; }
+
+/* Hero video */
+.hero-video-frame {
+  position: relative; border-radius: 20px; overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0,0,0,.25); background: #000;
+}
+.hero-video-media { width: 100%; height: clamp(240px, 45vw, 460px); display: block; object-fit: cover; }
+.hero-iframe-wrap iframe { width: 100%; height: 100%; border: none; }
+.hero-video-overlay {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 3rem 1.5rem 1.25rem; color: #fff; pointer-events: none;
+  background: linear-gradient(transparent, rgba(0,0,0,.78));
+}
+.hero-video-pills { display: flex; gap: .5rem; justify-content: center; padding: .75rem 0 0; flex-wrap: wrap; }
+.hero-video-pills .btn { border-radius: 999px; }
+[data-bs-theme="dark"] .hero-video-frame { box-shadow: 0 12px 32px rgba(0,0,0,.6); }
+
+/* Shared pill search (home + POS) */
+.pos-search { position: relative; }
+.pos-search-icon {
+  position: absolute; inset-inline-start: 16px; top: 50%; transform: translateY(-50%);
+  color: var(--bs-secondary-color); font-size: 1.1rem; pointer-events: none;
+}
+.pos-search-input {
+  width: 100%; border: 1px solid var(--bs-border-color); border-radius: 999px;
+  padding: 14px 44px; font-size: 1rem; background: var(--bs-body-bg); color: inherit; outline: none;
+}
+.pos-search-input:focus { border-color: var(--bs-primary); box-shadow: 0 0 0 3px rgba(13,110,253,.12); }
+.pos-search-clear {
+  position: absolute; inset-inline-end: 8px; top: 50%; transform: translateY(-50%);
+  border: none; background: var(--bs-tertiary-bg); border-radius: 50%;
+  width: 30px; height: 30px; color: var(--bs-secondary-color);
+}
+
+/* Shop chrome (painted from Admin -> Settings -> Theme) */
+.shop-header { background: var(--shop-header-bg, var(--bs-body-bg)); color: var(--shop-header-text, var(--bs-body-color)); }
+.shop-header a { color: inherit; }
+.shop-footer { background: var(--shop-footer-bg, var(--bs-tertiary-bg)); color: var(--shop-footer-text, var(--bs-secondary-color)); }
+.shop-footer a { color: inherit; }
+.shop-footer a:hover { color: var(--shop-accent, var(--bs-primary)); }
+
+[dir="rtl"] { text-align: right; }
+
+/* Dark mode (toggled via data-bs-theme on <html>) - global only!
+   NOTE: [data-bs-theme] selectors do NOT work inside component CSS files
+   (Angular style scoping prevents matching <html>), so all dark overrides live here. */
+[data-bs-theme="dark"] .modern-product-card { background: #1e1e1e; border-color: #333; }
+[data-bs-theme="dark"] .category-select-item { color: #ddd; }
+[data-bs-theme="dark"] .category-select-img-wrapper { background: #2a2a2a; }
+[data-bs-theme="dark"] .category-select-item.active .category-select-name { color: #6ea8fe; }
+[data-bs-theme="dark"] .category-select-item.active .category-select-img-wrapper { border-color: #6ea8fe; }
+[data-bs-theme="dark"] mark { background: #664d03; color: #fff; }
+
+/* KDS palette (both modes global so the dark rule always wins) */
+.kds {
+  --kds-bg: #f1f1f4;
+  --kds-card: #ffffff;
+  --kds-text: #18181b;
+  --kds-muted: #71717a;
+  --kds-border: #e4e4e7;
+  --kds-chip: #f4f4f5;
+  --kds-head-bg: #ffffff;
+  --kds-age-ok: #16a34a;
+  --kds-age-old: #b45309;
+  --kds-age-older: #dc2626;
+  --kds-addons: #b45309;
+}
+[data-bs-theme="dark"] .kds {
+  --kds-bg: #101014;
+  --kds-card: #1a1a20;
+  --kds-text: #f5f5f5;
+  --kds-muted: #a1a1aa;
+  --kds-border: #2b2b33;
+  --kds-chip: #2b2b33;
+  --kds-head-bg: #1c1c22;
+  --kds-age-ok: #4ade80;
+  --kds-age-old: #fbbf24;
+  --kds-age-older: #f87171;
+  --kds-addons: #fbbf24;
+}
+
+/* Active pills across POS / orders / home */
+[data-bs-theme="dark"] .pos-cat.active { background: #f8f9fa; color: #111; border-color: #f8f9fa; }
+[data-bs-theme="dark"] .pos-tables button.active { background: #f8f9fa; color: #111; border-color: #f8f9fa; }
+[data-bs-theme="dark"] .pos-pill.active { background: #f8f9fa; color: #111; border-color: #f8f9fa; }
+[data-bs-theme="dark"] .ord-filters button.active { background: #f8f9fa; color: #111; border-color: #f8f9fa; }
+[data-bs-theme="dark"] .ord-btn.primary { background: #f8f9fa; color: #111; border-color: #f8f9fa; }
+[data-bs-theme="dark"] .home-cat.active { background: #f8f9fa; color: #111; border-color: #f8f9fa; }
+[data-bs-theme="dark"] .shop-fab { background: #f8f9fa; color: #111; }
+[data-bs-theme="dark"] .ord-status[data-s="pending"] { background: #45300a; color: #fcd34d; }
+[data-bs-theme="dark"] .ord-status[data-s="preparing"] { background: #172554; color: #93c5fd; }
+[data-bs-theme="dark"] .ord-status[data-s="ready"], [data-bs-theme="dark"] .ord-status[data-s="completed"] { background: #052e16; color: #86efac; }
+[data-bs-theme="dark"] .admin-nav button.active { background: #f8f9fa; color: #111; }
+
+/* Responsive: phones */
+@media (max-width: 576px) {
+  .hero-video-overlay { padding: 2rem 1rem .9rem; }
+  .hero-video-overlay h3 { font-size: 1.1rem; }
+  .hero-video-overlay p { font-size: .85rem; }
+  .modern-card-img { height: 110px; }
+  .category-select-item { width: 76px; }
+  .category-select-img-wrapper { width: 60px; height: 60px; }
+  .table { display: block; overflow-x: auto; white-space: nowrap; }
+  header h2 { font-size: 1.2rem; }
+}
+
+/* Responsive: tablets */
+@media (min-width: 577px) and (max-width: 992px) {
+  .modern-card-img { height: 120px; }
+}

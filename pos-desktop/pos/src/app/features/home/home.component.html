@@ -1,0 +1,229 @@
+<!-- Mirrors Demo-Store src/Users/pages/Home.tsx + VideoAndNews.tsx -->
+<main [dir]="lang.dir()">
+  <!-- Hero video (responsive-iframe-container from HomePage.css) -->
+  <section class="vedio-and-news-wrapper mb-5">
+    @if (currentVideo(); as v) {
+      <div class="container pt-3">
+        <div class="hero-video-frame">
+          @if (isFile(v)) {
+            <video [src]="vidSrc(v)" autoplay muted loop playsinline class="hero-video-media"></video>
+          } @else {
+            <div class="hero-video-media hero-iframe-wrap">
+              <iframe [src]="safeUrl()" title="Promo video" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            </div>
+          }
+          <div class="hero-video-overlay">
+            <h3 class="mb-1">{{ lang.pick(v.title_en, v.title_ar) }}</h3>
+            @if (v.description_en || v.description_ar) {
+              <p class="mb-0 opacity-75">{{ lang.pick(v.description_en, v.description_ar) }}</p>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- News scroller -->
+    @if (news().length) {
+      <div class="container mt-3 position-relative">
+        <div class="news-scroll-container d-flex overflow-auto gap-3 px-2" #newsScroller style="scroll-snap-type:x mandatory">
+          @for (n of news(); track n.id) {
+            <div class="card flex-shrink-0 shadow-sm" style="min-width:230px;max-width:230px;scroll-snap-align:start">
+              @if (n.imageUrl) {
+                <img [src]="n.imageUrl" class="card-img-top" [alt]="n.title" style="height:120px;object-fit:cover" loading="lazy" />
+              }
+              <div class="card-body p-2">
+                <h5 class="card-title fs-6">{{ n.title }}</h5>
+                <p class="card-text" style="font-size:0.85rem">{{ n.description }}</p>
+              </div>
+            </div>
+          }
+        </div>
+        <button class="category-scroll-arrow2 arrow-left" (click)="scrollNews(-1)">‹</button>
+        <button class="category-scroll-arrow2 arrow-right" (click)="scrollNews(1)">›</button>
+      </div>
+    }
+  </section>
+
+  <!-- Active offers strip -->
+  @if (offers().length) {
+    <div class="container pt-1" style="max-width:1100px">
+      <div class="offer-strip">
+        @for (o of offers(); track o.id) {
+          <div class="offer-card">
+            @if (offerImg(o)) {
+              <img class="offer-img" [src]="offerImg(o)" [alt]="o.title_en" loading="lazy" />
+            }
+            <div class="offer-badge">{{ offerBadge(o) }}</div>
+            <div class="offer-title">{{ lang.pick(o.title_en, o.title_ar) }}</div>
+            @if (o.description_en || o.description_ar) {
+              <div class="offer-desc">{{ lang.pick(o.description_en, o.description_ar) }}</div>
+            }
+            @if (o.coupon_code) {
+              <button class="offer-code" (click)="copyCode(o)">
+                {{ copiedCode() === o.coupon_code ? lang.pick('Copied ✓', 'تم النسخ ✓') : o.coupon_code }}
+              </button>
+            } @else {
+              <div class="offer-auto">{{ lang.pick('Auto-applied at checkout', 'يُطبق تلقائيا عند الدفع') }}</div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Category + Products (same container as Home.tsx) -->
+  <div class="container my-5" style="max-width:1100px">
+    <h2 class="mb-3 text-center fw-bold">{{ lang.lang()==='ar' ? 'اختر فئة' : 'Select a Category' }}</h2>
+
+    <div class="home-cats mb-4" #catScroller>
+      <button class="home-cat" [class.active]="selectedCategory()==='all'" (click)="selectCategory('all')">
+        <img src="https://cdn-icons-png.flaticon.com/512/5632/5632430.png" alt="" />
+        <span>{{ lang.lang()==='ar' ? 'الكل' : 'All' }}</span>
+      </button>
+      @for (c of categories(); track c.id) {
+        <button class="home-cat" [class.active]="selectedCategory()===c.id" (click)="selectCategory(c.id)">
+          <img [src]="catImg(c)" [alt]="catName(c)" loading="lazy" />
+          <span>{{ catName(c) }}</span>
+        </button>
+      }
+    </div>
+
+    <hr class="my-4" />
+
+    <!-- Search (same id + classes as Home.tsx) -->
+    <div id="search" class="mb-4 row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+        <div class="pos-search">
+          <span class="pos-search-icon">⌕</span>
+          <input type="search" class="pos-search-input"
+            [placeholder]="lang.lang()==='ar' ? 'ابحث في هذه الفئة...' : 'Search products in this category...'"
+            [(ngModel)]="search" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Products -->
+    @if (loading()) {
+      <div class="text-center p-5"><div class="spinner-border text-primary"></div></div>
+    } @else if (filtered().length) {
+      <div class="row g-3">
+        @for (p of filtered(); track p.id) {
+          <div class="col-6 col-md-4 col-lg-3">
+            <a [routerLink]="['/product', p.id]" class="home-card">
+              <div class="home-card-imgwrap">
+                <img [src]="imgOf(p)" [alt]="nameOf(p)" loading="lazy" />
+                @if (offerPct(p); as pct) {
+                  <span class="home-off">-{{ pct }}%</span>
+                }
+              </div>
+              <div class="home-card-body">
+                <div class="home-card-name">{{ nameOf(p) }}{{ optValue(p) ? ' · ' + optValue(p) : '' }}</div>
+                <div class="d-flex align-items-center">
+                  <div class="home-card-price">
+                    JD {{ priceOf(p) | number:'1.2-2' }}
+                    @if (offerPct(p)) {
+                      <s>{{ origOf(p) | number:'1.2-2' }}</s>
+                    }
+                  </div>
+                  <button class="home-add" (click)="quickAdd(p); $event.preventDefault(); $event.stopPropagation()" aria-label="Add">+</button>
+                </div>
+              </div>
+            </a>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="text-center p-5">
+        <p class="text-muted">
+          @if (search()) { {{ lang.pick('No products found matching your search.', 'لا توجد منتجات مطابقة لبحثك.') }} }
+          @else { {{ lang.pick('No products found in this category.', 'لا توجد منتجات في هذه الفئة.') }} }
+        </p>
+      </div>
+    }
+  </div>
+</main>
+
+<!-- Floating cart -->
+@if (cartCount() > 0) {
+  <button class="shop-fab" (click)="openCart()">
+    <app-icon name="cart" [size]="19" /> {{ cartCount() }} · {{ cartTotal() | number:'1.2-2' }} JD
+  </button>
+}
+
+<!-- Cart / checkout drawer -->
+@if (cartOpen()) {
+  <div class="shop-backdrop" (click)="cartOpen.set(false)">
+    <div class="shop-drawer" (click)="$event.stopPropagation()">
+      @if (placed(); as done) {
+        <div class="text-center p-4">
+          <div style="font-size:3rem"><app-icon name="check" [size]="52" /></div>
+          <h4>{{ lang.pick('Order received!', 'تم استلام طلبك!') }}</h4>
+          <p class="text-muted">{{ lang.pick('Order number', 'رقم الطلب') }} <b>#{{ done.order_number }}</b></p>
+          <p class="fw-bold">{{ done.total | number:'1.2-2' }} JD</p>
+          @if (done.earned) {
+            <p class="text-success"><app-icon name="star" [size]="16" /> +{{ done.earned }} {{ lang.pick('loyalty points earned!', 'نقطة ولاء!') }}</p>
+          }
+          <a class="btn btn-outline-primary w-100 mb-2" style="border-radius:14px" [routerLink]="['/track']" [queryParams]="{ phone: done.phone }" (click)="cartOpen.set(false)"><app-icon name="track" [size]="16" /> {{ lang.pick('Track my order', 'تتبع طلبي') }}</a>
+          <button class="pos-charge" style="margin-top:0" (click)="cartOpen.set(false)">{{ lang.pick('Continue', 'متابعة') }}</button>
+        </div>
+      } @else if (!checkoutMode()) {
+        <h5 class="mb-2">{{ lang.pick('Your order', 'طلبك') }}</h5>
+        @for (i of cart(); track $index; let idx = $index) {
+          <div class="pos-line">
+            <div class="flex-grow-1">
+              <div class="fw-medium">{{ i.name }}</div>
+              <div class="small text-muted">{{ i.price | number:'1.2-2' }} JD</div>
+            </div>
+            <div class="pos-stepper">
+              <button (click)="bumpQty(idx, -1)">−</button>
+              <span>{{ i.quantity }}</span>
+              <button (click)="bumpQty(idx, 1)">+</button>
+            </div>
+            <div class="fw-bold">{{ i.price * i.quantity | number:'1.2-2' }}</div>
+            <button class="pos-remove" (click)="removeLine(idx)">✕</button>
+          </div>
+        } @empty {
+          <p class="text-muted">{{ lang.pick('Cart is empty.', 'السلة فارغة.') }}</p>
+        }
+        @if (cart().length) {
+          <div class="pos-total"><span>{{ lang.pick('Total', 'المجموع') }}</span><b>{{ cartTotal() | number:'1.2-2' }} JD</b></div>
+          <button class="pos-charge" (click)="checkoutMode.set(true)">{{ lang.pick('Checkout', 'إتمام الطلب') }}</button>
+        }
+      } @else {
+        <h5 class="mb-2">{{ lang.pick('Checkout', 'إتمام الطلب') }}</h5>
+        <div class="pos-segment mb-2">
+          <button [class.active]="svc()==='pickup'" (click)="svc.set('pickup')">{{ lang.pick('Pickup', 'استلام') }}</button>
+          <button [class.active]="svc()==='delivery'" (click)="svc.set('delivery')">{{ lang.pick('Delivery', 'توصيل') }}</button>
+        </div>
+        <div class="row g-2">
+          <div class="col-12"><input class="form-control" [ngModel]="cust().name" (ngModelChange)="setCust('name', $event)" placeholder="{{ lang.pick('Name *', 'الاسم *') }}" /></div>
+          <div class="col-4">
+            <select class="form-select" [ngModel]="cust().code" (ngModelChange)="setCust('code', $any($event))">
+              <option *ngFor="let c of countries" [value]="c.code">{{ c.flag }} {{ c.code }}</option>
+            </select>
+          </div>
+          <div class="col-8"><input class="form-control" [ngModel]="cust().phone" (ngModelChange)="setCust('phone', $event)" inputmode="tel" placeholder="{{ lang.pick('Phone *', 'الهاتف *') }}" /></div>
+          @if (svc()==='delivery') {
+            <div class="col-12"><input class="form-control" [ngModel]="cust().address" (ngModelChange)="setCust('address', $event)" placeholder="{{ lang.pick('Address *', 'العنوان *') }}" /></div>
+          }
+          <div class="col-6"><input class="form-control" [ngModel]="cust().coupon" (ngModelChange)="setCust('coupon', $event)" placeholder="{{ lang.pick('Coupon (optional)', 'كوبون (اختياري)') }}" /></div>
+          <div class="col-6"><input class="form-control" type="number" min="0" [ngModel]="cust().redeem" (ngModelChange)="setCust('redeem', $event)" placeholder="{{ lang.pick('Redeem points', 'استبدال النقاط') }}" /></div>
+          <div class="col-6">
+            <select class="form-select" [ngModel]="pay()" (ngModelChange)="pay.set($any($event))">
+              <option value="cash">{{ lang.pick('Cash', 'نقدي') }}</option>
+              <option value="cliq">{{ lang.pick('Cliq', 'كليك') }}</option>
+            </select>
+          </div>
+        </div>
+        @if (orderError()) { <p class="text-danger small mt-2">{{ orderError() }}</p> }
+        <div class="pos-total"><span>{{ lang.pick('Total', 'المجموع') }}</span><b>{{ cartTotal() | number:'1.2-2' }} JD</b></div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary flex-grow-1" style="border-radius:14px" (click)="checkoutMode.set(false)">{{ lang.pick('Back', 'رجوع') }}</button>
+          <button class="pos-charge flex-grow-1 mt-0" style="margin-top:0" (click)="placeOrder()" [disabled]="placing()">
+            {{ placing() ? '...' : lang.pick('Place order', 'تأكيد الطلب') }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

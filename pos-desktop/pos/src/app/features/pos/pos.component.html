@@ -1,0 +1,183 @@
+<div class="pos-page" [dir]="lang.dir()">
+  <div class="container-fluid py-3" style="max-width:1280px">
+
+    <!-- Search -->
+    <div class="pos-search mb-3">
+      <span class="pos-search-icon">⌕</span>
+      <input class="pos-search-input" [(ngModel)]="search" (ngModelChange)="loadProducts()"
+        [placeholder]="lang.pick('Search menu...', 'ابحث في القائمة...')" />
+      @if (search()) {
+        <button class="pos-search-clear" (click)="search.set(''); loadProducts()">✕</button>
+      }
+    </div>
+
+    <!-- Categories -->
+    <div class="pos-cats mb-3" #scroller>
+      <button class="pos-cat" [class.active]="selectedCategory()==='all'" (click)="selectCategory('all')">
+        <img src="https://cdn-icons-png.flaticon.com/512/5632/5632430.png" alt="" />
+        <span>{{ lang.pick('All', 'الكل') }}</span>
+      </button>
+      @for (c of categories(); track c.id) {
+        <button class="pos-cat" [class.active]="selectedCategory()===c.id" (click)="selectCategory(c.id)">
+          <img [src]="catImg(c)" [alt]="catName(c)" loading="lazy" />
+          <span>{{ catName(c) }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="row g-3">
+      <!-- Products -->
+      <div class="col-lg-7">
+        <div class="pos-list">
+          @for (p of products(); track p.id) {
+            <div class="pos-item" (click)="openDetail(p)">
+              <img [src]="imgOf(p)" [alt]="nameOf(p)" loading="lazy" />
+              <div class="pos-item-info">
+                <div class="pos-item-name">
+                  @if (highlight(nameOf(p), search()); as h) {
+                    {{ h.pre }}<mark>{{ h.match }}</mark>{{ h.post }}
+                  } @else { {{ nameOf(p) }} }
+                </div>
+                <div class="pos-item-sub">{{ optValue(p) }}</div>
+                <div class="pos-item-price">
+                  JD {{ priceOf(p) | number:'1.2-2' }}
+                  @if (offerPct(p)) {
+                    <s>{{ origOf(p) | number:'1.2-2' }}</s>
+                    <span class="pos-off">-{{ offerPct(p) }}%</span>
+                  }
+                </div>
+              </div>
+              <button class="pos-add" (click)="quickAdd(p); $event.stopPropagation()" aria-label="Add">+</button>
+            </div>
+          } @empty {
+            <p class="text-muted p-3">{{ lang.pick('No products in this category.', 'لا توجد منتجات في هذه الفئة.') }}</p>
+          }
+        </div>
+      </div>
+
+      <!-- Order panel -->
+      <div class="col-lg-5">
+        <div class="pos-cart">
+          <div class="d-flex align-items-center mb-2">
+            <h5 class="mb-0">{{ lang.pick('Current order', 'الطلب الحالي') }}</h5>
+            <span class="badge text-bg-light ms-2">{{ cartCount() }}</span>
+            @if (cart().length) {
+              <button class="btn btn-link btn-sm text-danger ms-auto p-0" (click)="clearCart()">{{ lang.pick('Clear', 'مسح') }}</button>
+            }
+          </div>
+
+          @if (!cart().length) {
+            <p class="text-muted small">{{ lang.pick('Tap + on any item to start an order.', 'اضغط + على أي صنف لبدء طلب.') }}</p>
+          }
+          @for (i of cart(); track $index; let idx = $index) {
+            <div class="pos-line">
+              <div class="flex-grow-1">
+                <div class="fw-medium">{{ i.name }}</div>
+                <div class="small text-muted">{{ i.price | number:'1.2-2' }} JD</div>
+              </div>
+              <div class="pos-stepper">
+                <button (click)="bumpQty(idx, -1)">−</button>
+                <span>{{ i.quantity }}</span>
+                <button (click)="bumpQty(idx, 1)">+</button>
+              </div>
+              <div class="pos-line-total">{{ i.price * i.quantity | number:'1.2-2' }}</div>
+              <button class="pos-remove" (click)="removeLine(idx)" aria-label="Remove">✕</button>
+            </div>
+          }
+
+          @if (cart().length) {
+            <div class="pos-total">
+              <span>{{ lang.pick('Total', 'المجموع') }}</span>
+              <b>{{ cartTotal() | number:'1.2-2' }} JD</b>
+            </div>
+
+            <div class="pos-segment">
+              <button [class.active]="serviceMethod()==='inRestaurant'" (click)="serviceMethod.set('inRestaurant')">{{ lang.pick('Dine-in', 'صالة') }}</button>
+              <button [class.active]="serviceMethod()==='pickup'" (click)="serviceMethod.set('pickup')">{{ lang.pick('Pickup', 'استلام') }}</button>
+              <button [class.active]="serviceMethod()==='delivery'" (click)="serviceMethod.set('delivery')">{{ lang.pick('Delivery', 'توصيل') }}</button>
+            </div>
+
+            @if (serviceMethod()==='inRestaurant') {
+              <div class="pos-tables">
+                @for (t of tables(); track t.id) {
+                  <button [class.active]="tableNumber()===t.label" [class.busy]="t.occupied"
+                    (click)="tableNumber.set(t.label)" [title]="t.occupied ? (t.active_orders.length + ' active') : ''">
+                    {{ t.label }}{{ t.occupied ? ' •' : '' }}
+                  </button>
+                } @empty {
+                  <span class="small text-muted">{{ lang.pick('No tables - add them in Admin.', 'لا طاولات - أضفها من الإدارة.') }}</span>
+                }
+              </div>
+            }
+
+            <input class="form-control mt-2" [(ngModel)]="couponCode" placeholder="{{ lang.pick('Coupon code (optional)', 'كوبون (اختياري)') }}" />
+            <div class="d-flex gap-2 mt-2">
+              <select class="form-select form-select-sm" style="max-width:110px" [(ngModel)]="loyCode" (change)="lookupLoyalty()">
+                <option *ngFor="let c of countries" [value]="c.code">{{ c.flag }} {{ c.code }}</option>
+              </select>
+              <input class="form-control form-control-sm" [(ngModel)]="loyPhone" (change)="lookupLoyalty()" inputmode="tel" placeholder="{{ lang.pick('Loyalty phone', 'هاتف النقاط') }}" />
+              @if (loyBalance() !== null) {
+                <input class="form-control form-control-sm" style="max-width:90px" type="number" min="0" [(ngModel)]="loyRedeem" [placeholder]="loyBalance()" />
+              }
+            </div>
+            @if (loyBalance() !== null) {
+              <div class="small text-muted mt-1"><app-icon name="star" [size]="13" /> {{ loyBalance() }} {{ lang.pick('pts', 'نقطة') }}</div>
+            }
+            <button class="pos-charge" (click)="checkout()">{{ lang.pick('Charge', 'تحصيل') }} · {{ cartTotal() | number:'1.2-2' }} JD</button>
+            @if (receipt(); as rc) {
+              <button class="btn btn-outline-secondary btn-sm w-100 mt-2" (click)="print.receipt(rc)"><app-icon name="print" [size]="15" /> {{ lang.pick('Print last receipt', 'طباعة آخر فاتورة') }} (#{{ rc.order_number }})</button>
+            }
+            @if (status()) { <p class="small mt-2 mb-0">{{ status() }}</p> }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail sheet -->
+  @if (detail(); as d) {
+    <div class="pos-sheet-backdrop" (click)="closeDetail()">
+      <div class="pos-sheet" (click)="$event.stopPropagation()">
+        <img [src]="imgOf(d.product)" [alt]="nameOf(d.product)" />
+        <div class="p-3">
+          <h5 class="mb-1">{{ nameOf(d.product) }}</h5>
+          @for (g of d.product.variants; track $index; let gi = $index) {
+            <div class="mt-2">
+              <div class="small fw-medium text-muted mb-1">{{ lang.pick(g.name_en, g.name_ar) }}</div>
+              <div class="d-flex flex-wrap gap-2">
+                @for (o of g.options; track $index; let oi = $index) {
+                  <button class="pos-pill" [class.active]="d.groupIdx===gi && d.optionIdx===oi"
+                    (click)="pickOption(gi, oi)" [disabled]="o.quantity !== null && o.quantity !== undefined && o.quantity <= 0">
+                    {{ lang.pick(o.value_en, o.value_ar) }} · {{ o.price }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+          @if (d.product.addons?.length) {
+            <div class="mt-2">
+              <div class="small fw-medium text-muted mb-1">{{ lang.pick('Extras', 'إضافات') }}</div>
+              <div class="d-flex flex-wrap gap-2">
+                @for (a of d.product.addons; track a.id) {
+                  <button class="pos-pill" [class.active]="d.addonIds.has(a.id)" (click)="toggleAddon(a.id)">
+                    {{ lang.pick(a.name_en, a.name_ar) }} +{{ a.extra_price ?? a.extraPrice }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+          <div class="d-flex align-items-center gap-2 mt-3">
+            <div class="pos-stepper big">
+              <button (click)="d.qty>1 && (detail.set({...d, qty:d.qty-1}))">−</button>
+              <span>{{ d.qty }}</span>
+              <button (click)="detail.set({...d, qty:d.qty+1})">+</button>
+            </div>
+            <button class="pos-charge flex-grow-1" (click)="addDetailToCart()">
+              {{ lang.pick('Add', 'إضافة') }} · {{ detailPrice() | number:'1.2-2' }} JD
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

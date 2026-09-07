@@ -1,0 +1,94 @@
+<div class="ord-page" [dir]="lang.dir()">
+<div class="container-fluid py-3" style="max-width:920px">
+  <div class="d-flex align-items-baseline gap-2 mb-2">
+    <h4 class="mb-0">{{ lang.pick('Orders', 'الطلبات') }}</h4>
+    <span class="text-muted small">{{ orders().length }}</span>
+    @if (msg()) { <span class="small text-muted ms-2">{{ msg() }}</span> }
+  </div>
+
+  <div class="ord-filters mb-3">
+    <button [class.active]="filter()===''" (click)="setFilter('')">{{ lang.pick('All', 'الكل') }}</button>
+    <button [class.active]="filter()==='pending'" (click)="setFilter('pending')">{{ lang.pick('Pending', 'قيد الانتظار') }}</button>
+    <button [class.active]="filter()==='preparing'" (click)="setFilter('preparing')">{{ lang.pick('Preparing', 'قيد التحضير') }}</button>
+    <button [class.active]="filter()==='ready'" (click)="setFilter('ready')">{{ lang.pick('Ready', 'جاهز') }}</button>
+    <button [class.active]="filter()==='completed'" (click)="setFilter('completed')">{{ lang.pick('Done', 'تم') }}</button>
+    <button [class.active]="filter()==='cancelled'" (click)="setFilter('cancelled')">{{ lang.pick('Cancelled', 'ملغي') }}</button>
+  </div>
+
+  @for (o of orders(); track o.id) {
+    <div class="ord-card" [class.dim]="o.status==='cancelled' || o.status==='completed'">
+      <div class="d-flex align-items-start gap-2">
+        <div>
+          <div class="ord-num">#{{ o.order_number }}</div>
+          <div class="ord-sub">{{ shortId(o.id) }} · {{ ageMin(o.created_at) }} {{ lang.pick('min ago', 'منذ دقيقة') }}</div>
+        </div>
+        <span class="ord-status" [attr.data-s]="o.status">{{ statusName(o.status) }}</span>
+        <div class="ms-auto ord-total">{{ o.total_amount }} JD</div>
+      </div>
+      <div class="ord-meta">{{ o.service_method }}{{ o.table_number ? ' · ' + o.table_number : '' }}{{ o.phone_number ? ' · ' + o.phone_number : '' }}</div>
+      <div class="ord-actions">
+        <button class="ord-btn" (click)="toggleDetail(o)">{{ lang.pick('Items', 'الأصناف') }}</button>
+        <button class="ord-btn" (click)="printReceipt(o)" title="Print"><app-icon name="print" [size]="16" /></button>
+        @if (o.status==='pending') {
+          <button class="ord-btn" (click)="startEdit(o)">{{ lang.pick('Edit', 'تعديل') }}</button>
+          <button class="ord-btn primary" (click)="setStatus(o,'preparing')">{{ lang.pick('Start →', 'بدء ←') }}</button>
+        }
+        @if (o.status==='preparing') { <button class="ord-btn primary" (click)="setStatus(o,'ready')">{{ lang.pick('Ready →', 'جاهز ←') }}</button> }
+        @if (o.status==='ready') { <button class="ord-btn primary" (click)="setStatus(o,'completed')">{{ lang.pick('Done ✓', 'تم ✓') }}</button> }
+        @if (o.status!=='cancelled' && o.status!=='completed') {
+          <button class="ord-btn danger ms-auto" (click)="setStatus(o,'cancelled')">✕</button>
+        }
+      </div>
+      @if (expanded()===o.id) {
+        <div class="ord-detail">
+          @if (detail() && detail().id===o.id) {
+            @for (it of detail().items; track $index) {
+              <div class="ord-detail-line"><span>{{ it.quantity }}x {{ it.product_name_snapshot }} {{ it.variant_value }}</span><span>{{ it.unit_price }} JD</span></div>
+            }
+          } @else { <div class="spinner-border spinner-border-sm"></div> }
+        </div>
+      }
+    </div>
+  } @empty { <p class="text-muted">{{ lang.pick('No orders yet.', 'لا توجد طلبات بعد.') }}</p> }
+</div>
+
+<!-- EDIT POPUP (pending only) -->
+@if (editing(); as f) {
+  <div class="modal d-block" style="background:rgba(0,0,0,.5)" (click)="cancelEdit()">
+    <div class="modal-dialog" style="max-width:640px" (click)="$event.stopPropagation()">
+      <div class="modal-content" style="border-radius:20px">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ lang.pick('Edit order', 'تعديل الطلب') }} #{{ f.order_number }} <span class="small text-muted">({{ shortId(f.id) }})</span></h5>
+          <button class="btn-close" (click)="cancelEdit()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2 mb-2">
+            <div class="col-md-4"><label class="form-label">{{ lang.pick('Table', 'طاولة') }}</label><input class="form-control" [(ngModel)]="f.table_number" /></div>
+            <div class="col-md-4"><label class="form-label">{{ lang.pick('Phone', 'هاتف') }}</label><input class="form-control" [(ngModel)]="f.phone_number" /></div>
+            <div class="col-md-4"><label class="form-label">{{ lang.pick('City', 'مدينة') }}</label><input class="form-control" [(ngModel)]="f.city" /></div>
+            <div class="col-md-6"><label class="form-label">{{ lang.pick('Address', 'عنوان') }}</label><input class="form-control" [(ngModel)]="f.address" /></div>
+            <div class="col-md-6"><label class="form-label">{{ lang.pick('Delivery location', 'موقع التوصيل') }}</label><input class="form-control" [(ngModel)]="f.delivery_location" /></div>
+          </div>
+          <h6>{{ lang.pick('Items', 'الأصناف') }}</h6>
+          @for (it of f.items; track $index; let i = $index) {
+            <div class="d-flex gap-2 align-items-center border-top py-1">
+              <div class="flex-grow-1">
+                <b>{{ it.name }}</b>
+                @if (it.variant_value) { <span class="text-muted small"> ({{ it.variant_value }})</span> }
+                <div class="small text-muted">{{ it.unit_price }} JD {{ lang.pick('each', 'للقطعة') }}</div>
+              </div>
+              <input type="number" class="form-control" style="width:80px" min="1" [(ngModel)]="it.quantity" />
+              <button class="btn btn-sm btn-outline-danger" (click)="dropEditItem(i)">{{ lang.pick('Remove', 'حذف') }}</button>
+            </div>
+          }
+          <div class="text-end fw-bold mt-2">{{ lang.pick('New total:', 'المجموع الجديد:') }} {{ editTotal() | number:'1.2-2' }} JD</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary btn-sm" (click)="cancelEdit()">{{ lang.pick('Cancel', 'إلغاء') }}</button>
+          <button class="btn btn-primary btn-sm" (click)="saveEdit()">{{ lang.pick('Save', 'حفظ') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+</div>
