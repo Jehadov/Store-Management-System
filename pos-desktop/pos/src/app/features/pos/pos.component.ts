@@ -41,6 +41,7 @@ export class PosComponent implements OnInit {
   serviceMethod = signal<'delivery' | 'pickup' | 'inRestaurant'>('inRestaurant');
   couponCode = signal('');
   status = signal('');
+  paidNow = signal(true);
   loyPhone = signal('');
   loyCode = signal('+962');
   countries = COUNTRIES;
@@ -223,6 +224,7 @@ export class PosComponent implements OnInit {
       couponCode: this.couponCode().trim() || undefined,
       loyaltyPhone: normalizePhone(this.loyCode(), this.loyPhone()).replace(/\D/g, '').length >= 10
         ? normalizePhone(this.loyCode(), this.loyPhone()) : undefined,
+      paid: this.paidNow(),
       redeemPoints: Math.max(0, Math.floor(Number(this.loyRedeem()) || 0)) || undefined,
       languageAtOrder: this.lang.lang(),
     };

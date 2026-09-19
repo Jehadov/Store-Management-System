@@ -141,18 +141,21 @@ mark { background: #fffb87; padding: 0; }
 [data-bs-theme="dark"] .admin-nav button.active { background: #f8f9fa; color: #111; }
 
 /* Responsive: phones */
-@media (max-width: 576px) {
-  .hero-video-overlay { padding: 2rem 1rem .9rem; }
+@media (max-width: 576px) {  .hero-video-overlay { padding: 2rem 1rem .9rem; }
   .hero-video-overlay h3 { font-size: 1.1rem; }
   .hero-video-overlay p { font-size: .85rem; }
   .modern-card-img { height: 110px; }
   .category-select-item { width: 76px; }
   .category-select-img-wrapper { width: 60px; height: 60px; }
-  .table { display: block; overflow-x: auto; white-space: nowrap; }
   header h2 { font-size: 1.2rem; }
 }
 
 /* Responsive: tablets */
 @media (min-width: 577px) and (max-width: 992px) {
   .modern-card-img { height: 120px; }
+}
+
+/* Room for the mobile bottom nav */
+@media (max-width: 768px) {
+  main { padding-bottom: 72px; }
 }

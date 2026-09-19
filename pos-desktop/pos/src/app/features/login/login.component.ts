@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { LangService } from '../../core/lang.service';
+import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -22,6 +23,7 @@ import { LangService } from '../../core/lang.service';
 export class LoginComponent {
   private api = inject(ApiService);
   private router = inject(Router);
+  private auth = inject(AuthService);
   lang = inject(LangService);
   username = '';
   password = '';
@@ -29,10 +31,8 @@ export class LoginComponent {
   login() {
     this.api.login(this.username, this.password).subscribe({
       next: (r) => {
-        localStorage.setItem('pos_token', r.token);
-        localStorage.setItem('pos_user', JSON.stringify(r.user));
-        // cashier -> /pos, kitchen -> /kitchen, admin -> /pos
-        this.router.navigate([r.user.role === 'kitchen' ? '/kitchen' : '/pos']);
+        this.auth.login(r.token, r.user);
+        this.router.navigate([this.auth.homeFor(r.user)]);
       },
       error: () => this.error.set(this.lang.pick('Invalid credentials', 'بيانات الدخول غير صحيحة')),
     });

@@ -45,11 +45,13 @@
 .offer-strip { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 10px; scrollbar-width: none; }
 .offer-strip::-webkit-scrollbar { display: none; }
 .offer-card {
-  flex-shrink: 0; width: 250px; border-radius: 18px; padding: 16px; color: #fff;
+  flex-shrink: 0; width: 280px; border-radius: 16px; padding: 0; color: #fff;
   background: linear-gradient(135deg, #111827, #4c1d95);
   box-shadow: 0 8px 20px rgba(0,0,0,.15); overflow: hidden;
+  display: flex; align-items: stretch; gap: 0;
 }
-.offer-img { width: calc(100% + 32px); height: 130px; object-fit: cover; margin: -16px -16px 12px; display: block; }
+.offer-img { width: 110px; min-height: 100%; object-fit: cover; display: block; flex-shrink: 0; }
+.offer-body { padding: 12px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .offer-badge {
   display: inline-block; font-weight: 800; font-size: 1.05rem;
   background: rgba(255,255,255,.18); border-radius: 999px; padding: 3px 12px; margin-bottom: 8px;
@@ -71,10 +73,14 @@
 .home-add:active { transform: scale(.92); }
 
 .shop-fab {
-  position: fixed; bottom: 20px; inset-inline: 0; margin-inline: auto;
-  width: fit-content; z-index: 60; border: none; border-radius: 999px;
-  background: #111; color: #fff; font-weight: 700; font-size: 1rem;
-  padding: 14px 28px; box-shadow: 0 10px 28px rgba(0,0,0,.3);
+   position: fixed; bottom: 20px; inset-inline: 0; margin-inline: auto;
+   width: fit-content; z-index: 60; border: none; border-radius: 999px;
+   background: #111; color: #fff; font-weight: 700; font-size: 1rem;
+   padding: 14px 28px; box-shadow: 0 10px 28px rgba(0,0,0,.3);
+   margin-bottom: env(safe-area-inset-bottom, 0);
+}
+@media (max-width: 768px) {
+   .shop-fab { bottom: 80px; }
 }
 
 .shop-backdrop {

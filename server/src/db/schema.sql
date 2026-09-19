@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS products (
   long_desc_ar TEXT DEFAULT '',
   image TEXT DEFAULT '/placeholder-product.png',
   is_offer BOOLEAN DEFAULT FALSE,
+  is_active BOOLEAN DEFAULT TRUE,
   manufactured_at DATE,
   expiration DATE,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -105,9 +106,9 @@ CREATE TABLE IF NOT EXISTS offers (
   is_active BOOLEAN DEFAULT TRUE,
   coupon_code TEXT,
   discount_nature TEXT DEFAULT 'fixed' CHECK (discount_nature IN ('percentage','fixed')),
-  bogo_buy_product_id UUID REFERENCES products(id),
+  bogo_buy_product_id UUID REFERENCES products(id) ON DELETE SET NULL,
   bogo_buy_qty INT DEFAULT 1,
-  bogo_get_product_id UUID REFERENCES products(id),
+  bogo_get_product_id UUID REFERENCES products(id) ON DELETE SET NULL,
   bogo_get_qty INT DEFAULT 1,
   bogo_get_type TEXT DEFAULT 'free',
   created_at TIMESTAMPTZ DEFAULT now()
@@ -132,8 +133,9 @@ CREATE TABLE IF NOT EXISTS orders (
   order_number SERIAL UNIQUE,
   service_method TEXT NOT NULL CHECK (service_method IN ('delivery','pickup','inRestaurant')),
   table_number TEXT,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','preparing','ready','completed','cancelled')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','preparing','ready','on_the_way','completed','cancelled')),
   payment_method TEXT NOT NULL DEFAULT 'cash' CHECK (payment_method IN ('cash','cliq')),
+  payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','paid')),
   -- shipping snapshot (AddressData)
   first_name TEXT DEFAULT '',
   last_name TEXT DEFAULT '',
@@ -154,23 +156,27 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS order_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
-  product_id UUID REFERENCES products(id),
+  product_id UUID REFERENCES products(id) ON DELETE SET NULL,
   product_name_snapshot TEXT NOT NULL,
   variant_group_name TEXT DEFAULT '',
   variant_value TEXT DEFAULT '',
   unit_label TEXT DEFAULT '',
   unit_price NUMERIC(10,2) NOT NULL,
   quantity INT NOT NULL DEFAULT 1,
-  line_total NUMERIC(10,2) GENERATED ALWAYS AS (unit_price * quantity) STORED,
+  line_total NUMERIC(10,2) NOT NULL DEFAULT 0,
   addons_snapshot JSONB DEFAULT '[]'
 );
 CREATE INDEX IF NOT EXISTS idx_oi_order ON order_items(order_id);
+
+-- Fix: line_total must include addons, so it's a regular column not generated
+ALTER TABLE order_items DROP COLUMN IF EXISTS line_total;
+ALTER TABLE order_items ADD COLUMN line_total NUMERIC(10,2) NOT NULL DEFAULT 0;
 
 -- v2: stock + offers (idempotent for existing Docker DBs, applied via npm run db:migrate)
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal_amount NUMERIC(10,2) DEFAULT 0;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10,2) DEFAULT 0;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code TEXT;
-ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_option_id UUID REFERENCES variant_options(id);
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_option_id UUID REFERENCES variant_options(id) ON DELETE SET NULL;
 
 -- Users for admin/cashier (replaces Firebase Auth for backend)
 CREATE TABLE IF NOT EXISTS users (
@@ -230,9 +236,23 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS loyalty_redeemed INT DEFAULT 0;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS loyalty_discount NUMERIC(10,2) DEFAULT 0;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS loyalty_earn_per_jd NUMERIC(10,2) DEFAULT 1;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS loyalty_jd_per_point NUMERIC(10,2) DEFAULT 0.05;
+-- Products with order history can't be deleted; disable them instead
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 -- Theme studio: per-mode palettes (JSON) + shop contact phones (up to 4)
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS theme_json TEXT DEFAULT '{}';
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS phones TEXT[] DEFAULT '{}';
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_from TEXT DEFAULT '';
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_token TEXT DEFAULT '';
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_service_sid TEXT DEFAULT '';
+
+-- Order workflow: pay-at-cashier by order ID + delivery on-the-way stageALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'unpaid';
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE orders ADD CONSTRAINT orders_status_check
+  CHECK (status IN ('pending','preparing','ready','on_the_way','completed','cancelled'));
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_payment_status_check;
+ALTER TABLE orders ADD CONSTRAINT orders_payment_status_check
+  CHECK (payment_status IN ('unpaid','paid'));
 
 -- Losses / expenses (rent, salaries, food cost, waste...) for profit dashboards
 CREATE TABLE IF NOT EXISTS expenses (
@@ -245,3 +265,24 @@ CREATE TABLE IF NOT EXISTS expenses (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(spent_at);
+
+-- BOGO legs also release deleted products (offer stays, engine skips it)
+ALTER TABLE offers DROP CONSTRAINT IF EXISTS offers_bogo_buy_product_id_fkey;
+ALTER TABLE offers ADD CONSTRAINT offers_bogo_buy_product_id_fkey
+  FOREIGN KEY (bogo_buy_product_id) REFERENCES products(id) ON DELETE SET NULL;
+ALTER TABLE offers DROP CONSTRAINT IF EXISTS offers_bogo_get_product_id_fkey;
+ALTER TABLE offers ADD CONSTRAINT offers_bogo_get_product_id_fkey
+  FOREIGN KEY (bogo_get_product_id) REFERENCES products(id) ON DELETE SET NULL;
+
+-- Deleted products stay visible in old orders via snapshots (product_id SET NULL)
+ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_product_id_fkey;
+ALTER TABLE order_items ADD CONSTRAINT order_items_product_id_fkey
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
+-- Same for variant options (variant_value snapshot keeps showing)
+ALTER TABLE order_items DROP CONSTRAINT IF EXISTS order_items_variant_option_id_fkey;
+ALTER TABLE order_items ADD CONSTRAINT order_items_variant_option_id_fkey
+  FOREIGN KEY (variant_option_id) REFERENCES variant_options(id) ON DELETE SET NULL;
+
+-- Order assignment (kitchen staff can claim orders as their task)
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES users(id);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;

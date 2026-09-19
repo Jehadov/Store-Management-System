@@ -53,6 +53,7 @@
             @if (offerImg(o)) {
               <img class="offer-img" [src]="offerImg(o)" [alt]="o.title_en" loading="lazy" />
             }
+            <div class="offer-body">
             <div class="offer-badge">{{ offerBadge(o) }}</div>
             <div class="offer-title">{{ lang.pick(o.title_en, o.title_ar) }}</div>
             @if (o.description_en || o.description_ar) {
@@ -65,6 +66,7 @@
             } @else {
               <div class="offer-auto">{{ lang.pick('Auto-applied at checkout', 'يُطبق تلقائيا عند الدفع') }}</div>
             }
+            </div>
           </div>
         }
       </div>
@@ -159,6 +161,7 @@
           <div style="font-size:3rem"><app-icon name="check" [size]="52" /></div>
           <h4>{{ lang.pick('Order received!', 'تم استلام طلبك!') }}</h4>
           <p class="text-muted">{{ lang.pick('Order number', 'رقم الطلب') }} <b>#{{ done.order_number }}</b></p>
+          <div class="alert alert-info">{{ lang.pick('Show this number to the cashier to pay', 'أظهر هذا الرقم للكاشير للدفع') }} 💵</div>
           <p class="fw-bold">{{ done.total | number:'1.2-2' }} JD</p>
           @if (done.earned) {
             <p class="text-success"><app-icon name="star" [size]="16" /> +{{ done.earned }} {{ lang.pick('loyalty points earned!', 'نقطة ولاء!') }}</p>
@@ -194,7 +197,14 @@
         <div class="pos-segment mb-2">
           <button [class.active]="svc()==='pickup'" (click)="svc.set('pickup')">{{ lang.pick('Pickup', 'استلام') }}</button>
           <button [class.active]="svc()==='delivery'" (click)="svc.set('delivery')">{{ lang.pick('Delivery', 'توصيل') }}</button>
+          <button [class.active]="svc()==='inRestaurant'" (click)="svc.set('inRestaurant')">{{ lang.pick('Dine-in', 'صالة') }}</button>
         </div>
+        @if (svc()==='inRestaurant' && tables().length) {
+          <select class="form-select mb-2" [ngModel]="tableNumber()" (ngModelChange)="tableNumber.set($any($event))">
+            <option value="">{{ lang.pick('Choose table...', 'اختر الطاولة...') }}</option>
+            <option *ngFor="let t of tables()" [value]="t.label">{{ t.label }} ({{ t.seats }}){{ t.occupied ? ' • ' + lang.pick('busy', 'مشغولة') : '' }}</option>
+          </select>
+        }
         <div class="row g-2">
           <div class="col-12"><input class="form-control" [ngModel]="cust().name" (ngModelChange)="setCust('name', $event)" placeholder="{{ lang.pick('Name *', 'الاسم *') }}" /></div>
           <div class="col-4">

@@ -12,6 +12,26 @@ app-footer {
   flex-shrink: 0;
 }
 
+/* Session timer styles */
+.session-alert {
+  border-radius: 14px;
+}
+.session-timer {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border-radius: 14px;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: 600;
+}
+.session-expired {
+  border-radius: 14px;
+}
+.session-expired .btn {
+  margin-top: 8px;
+}
+
 /* Sidebar shell stacks vertically on phones */
 @media (max-width: 768px) {
   .shell-row {

@@ -11,7 +11,7 @@ trackRouter.get('/:phone', async (req, res) => {
              OR RIGHT(regexp_replace(o.loyalty_phone, '\\D', '', 'g'), 9) = RIGHT($1, 9)`;
   const { rows } = await pool.query(
     `SELECT o.id, o.order_number, o.status, o.service_method, o.table_number,
-            o.total_amount, o.created_at
+            o.total_amount, o.created_at, o.payment_method, o.payment_status
      FROM orders o WHERE (${cond}) ORDER BY o.created_at DESC LIMIT 20`,
     [digits]
   );

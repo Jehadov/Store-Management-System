@@ -14,8 +14,8 @@ Base: `http://localhost:4000/api` — mapped from `src/Users/pages/types.ts`
 | promo / hero videos | `videos` | `GET /videos?active=true`, `GET /videos/:id`, `POST/PUT/DELETE /videos/:id` (admin) |
 | images (URL strings) + promo mp4 | local disk `./uploads` | `POST /upload` (admin, form-data `file`\|`image`\|`video`) -> `{url, type, mimetype, size}` (.jpg/.png/.webp/.gif, .mp4/.webm/.mov, 50MB) |
 | Firebase Auth (missing) | `users` | `POST /auth/seed` (first admin once), `POST /auth/login` -> `{token,user}`, `POST /auth/users` + `DELETE /auth/users/:id` (admin, no self-delete, no last-admin delete) |
-| `CheckoutStepper` confirm | `orders` + `order_items` | `POST /orders` |
-| `AdminDashboard` TODO recent orders | `orders` | `GET /orders?status=pending`, `PATCH /orders/:id/status` |
+| `CheckoutStepper` confirm | `orders` + `order_items` | `POST /orders` (unpaid unless `paid:true`; dine-in takes `tableNumber`) |
+| `AdminDashboard` TODO recent orders | `orders` | `GET /orders?status=pending`, `PATCH /orders/:id/status` (pending→preparing→ready→[on_the_way for delivery]→completed), `PATCH /orders/:id/payment` (cashier marks paid by ID, cash now / cliq auto later) |
 | `AdminDashboard` one-call overview | all tables | `GET /admin/overview` (admin) -> `{counts, revenue{total,today}, recentOrders[10], lowStock[20]}` |
 | analytics dashboards | orders/items/offers | `GET /admin/stats/revenue?days|preset|year&month`, `/stats/years`, `/stats/top-products`, `/stats/mix`, `/stats/hours`, `/stats/categories`, `/stats/discounts`, `/stats/eod?date=` (admin) |
 | dining tables floor | `dining_tables` | `GET /tables` (public, live occupancy), `POST/PUT/DELETE /tables/:id` (admin, 409 if occupied) |

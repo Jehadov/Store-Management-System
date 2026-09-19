@@ -34,7 +34,7 @@ productsRouter.get('/', async (req, res) => {
       `SELECT p.*, o.price, o.original_price, o.option_image, o.option_value FROM products p
        ${CHEAPEST_OPTION}
        JOIN product_categories pc ON pc.product_id = p.id
-       WHERE pc.category_id = $1
+       WHERE pc.category_id = $1 AND p.is_active
        AND ($2 = '' OR lower(p.name_en) LIKE '%'||$2||'%' OR lower(p.name_ar) LIKE '%'||$2||'%')
        ORDER BY p.name_en LIMIT $3 OFFSET $4`,
       [categoryId, search, limit, offset]
@@ -43,12 +43,25 @@ productsRouter.get('/', async (req, res) => {
     rows = await pool.query(
       `SELECT p.*, o.price, o.original_price, o.option_image, o.option_value FROM products p
        ${CHEAPEST_OPTION}
-       WHERE ($1 = '' OR lower(p.name_en) LIKE '%'||$1||'%' OR lower(p.name_ar) LIKE '%'||$1||'%')
+       WHERE p.is_active
+       AND ($1 = '' OR lower(p.name_en) LIKE '%'||$1||'%' OR lower(p.name_ar) LIKE '%'||$1||'%')
        ORDER BY p.name_en LIMIT $2 OFFSET $3`,
       [search, limit, offset]
     );
   }
   res.json(rows.rows);
+});
+
+// GET /api/products/admin/all (admin) - everything incl. disabled, for management
+productsRouter.get('/admin/all', requireAuth, requireRole('admin'), async (req, res) => {
+  const search = (req.query.search as string | undefined)?.toLowerCase() || '';
+  const { rows } = await pool.query(
+    `SELECT * FROM products
+     WHERE ($1 = '' OR lower(name_en) LIKE '%'||$1||'%' OR lower(name_ar) LIKE '%'||$1||'%')
+     ORDER BY name_en LIMIT 100`,
+    [search]
+  );
+  res.json(rows);
 });
 
 // GET /api/products/:id - full detail with variants + addons
@@ -137,13 +150,15 @@ productsRouter.put('/:id', requireAuth, requireRole('admin'), async (req, res) =
         long_desc_en=COALESCE($5,long_desc_en), long_desc_ar=COALESCE($6,long_desc_ar),
         image=COALESCE($7,image), is_offer=COALESCE($8,is_offer),
         manufactured_at=COALESCE($9,manufactured_at), expiration=COALESCE($10,expiration),
+        is_active=COALESCE($11,is_active),
         updated_at=now()
-       WHERE id=$11 RETURNING *`,
+       WHERE id=$12 RETURNING *`,
       [b.name_en ?? null, b.name_ar ?? null,
        b.shortDescription_en ?? b.short_desc_en ?? null, b.shortDescription_ar ?? b.short_desc_ar ?? null,
        b.longDescription_en ?? b.long_desc_en ?? null, b.longDescription_ar ?? b.long_desc_ar ?? null,
        b.image ?? null, b.isOffer ?? b.is_offer ?? null,
-       b.manufactured_at || null, b.expiration || null, req.params.id]
+       b.manufactured_at || null, b.expiration || null,
+       b.isActive ?? b.is_active ?? null, req.params.id]
     );
     void cur;
     // Replace category links only if `category` array provided
@@ -188,13 +203,15 @@ productsRouter.put('/:id', requireAuth, requireRole('admin'), async (req, res) =
   }
 });
 
-// DELETE /api/products/:id - blocked if used in orders (admin)
+// DELETE /api/products/:id (admin) - allowed even with order history;
+// past orders keep showing the item from their snapshots (product_id SET NULL)
 productsRouter.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
-  const used = await pool.query('SELECT 1 FROM order_items WHERE product_id=$1 LIMIT 1', [req.params.id]);
-  if (used.rowCount) {
-    return res.status(409).json({ error: 'Product has orders. Disable it instead of deleting.' });
+  try {
+    const { rowCount } = await pool.query('DELETE FROM products WHERE id=$1', [req.params.id]);
+    if (!rowCount) return res.status(404).json({ error: 'not found' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'delete failed' });
   }
-  const { rowCount } = await pool.query('DELETE FROM products WHERE id=$1', [req.params.id]);
-  if (!rowCount) return res.status(404).json({ error: 'not found' });
-  res.json({ ok: true });
 });

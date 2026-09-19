@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 export interface Category { id: string; name_en: string; name_ar: string; image?: string; }
 export interface VariantOption {
@@ -21,8 +21,9 @@ export interface CartItem {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
-  base = 'http://localhost:4000/api';
-  origin = 'http://localhost:4000';
+  // Host-aware: works on localhost AND on phones via LAN IP (ng serve --host 0.0.0.0)
+  base = `http://${window.location.hostname}:4000/api`;
+  origin = `http://${window.location.hostname}:4000`;
 
   /** Resolve a backend image path to a loadable URL.
    *  Backend stores `/uploads/x.png` but the app runs on :4200,
@@ -50,14 +51,17 @@ export class ApiService {
     return this.http.post<{ token: string; user: any }>(`${this.base}/auth/login`, { username, password });
   }
   categories() { return this.http.get<Category[]>(`${this.base}/categories`); }
-  products(categoryId = 'all', search = '') {
+  products(categoryId = 'all', search = '', admin = false) {
+    if (admin && this.token()) {
+      return this.http.get<Product[]>(`${this.base}/products/admin/all`, { params: { search }, headers: this.headers() as any });
+    }
     return this.http.get<Product[]>(`${this.base}/products`, { params: { categoryId, search, limit: '100' } });
   }
   productDetail(id: string) { return this.http.get<Product>(`${this.base}/products/${id}`); }
   createOrder(payload: any) { return this.http.post<{ orderId: string; order_number: number; subtotal: number; discount: number; total: number }>(`${this.base}/orders`, payload); }
   orders(status?: string) {
-    const params: any = {};
-    if (status) params.status = status;
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
     return this.http.get<any[]>(`${this.base}/orders`, { params, headers: this.headers() as any });
   }
   orderDetail(id: string) {
@@ -68,6 +72,15 @@ export class ApiService {
   }
   updateOrder(id: string, body: any) {
     return this.http.put<any>(`${this.base}/orders/${id}`, body, { headers: this.headers() as any });
+  }
+  markPaid(id: string, method?: string) {
+    return this.http.patch<any>(`${this.base}/orders/${id}/payment`, { payment_status: 'paid', method }, { headers: this.headers() as any });
+  }
+  assignOrder(id: string, userId: string) {
+    return this.http.patch<any>(`${this.base}/orders/${id}/assign`, { assigned_to: userId }, { headers: this.headers() as any });
+  }
+  unassignOrder(id: string) {
+    return this.http.patch<any>(`${this.base}/orders/${id}/unassign`, {}, { headers: this.headers() as any });
   }
 
   // ---- Admin ----
@@ -82,8 +95,9 @@ export class ApiService {
     else params.days = String(opts.days || 7);
     return this.http.get<any[]>(`${this.base}/admin/stats/revenue`, { params, headers: this.headers() as any });
   }
-  topProducts(limit = 5, opts: { year?: number; month?: number; preset?: string } = {}) {
+  topProducts(limit = 5, opts: { days?: number; year?: number; month?: number; preset?: string } = {}) {
     const params: any = { limit: String(limit) };
+    if (opts.days) params.days = String(opts.days);
     if (opts.preset) params.preset = opts.preset;
     else if (opts.year && opts.month) { params.year = String(opts.year); params.month = String(opts.month); }
     else if (opts.year) params.year = String(opts.year);
@@ -184,6 +198,9 @@ export class ApiService {
   }
   deleteEmployee(id: string) {
     return this.http.delete(`${this.base}/auth/users/${id}`, { headers: this.headers() as any });
+  }
+  updateEmployee(id: string, body: any) {
+    return this.http.put<any>(`${this.base}/auth/users/${id}`, body, { headers: this.headers() as any });
   }
   // shop settings
   settings() {

@@ -111,6 +111,10 @@
             }
 
             <input class="form-control mt-2" [(ngModel)]="couponCode" placeholder="{{ lang.pick('Coupon code (optional)', 'كوبون (اختياري)') }}" />
+            <label class="small mt-2 d-flex align-items-center gap-2">
+              <input type="checkbox" class="form-check-input" [ngModel]="paidNow()" (ngModelChange)="paidNow.set($any($event))" />
+              {{ lang.pick('Paid now (cash in hand)', 'مدفوع الآن') }}
+            </label>
             <div class="d-flex gap-2 mt-2">
               <select class="form-select form-select-sm" style="max-width:110px" [(ngModel)]="loyCode" (change)="lookupLoyalty()">
                 <option *ngFor="let c of countries" [value]="c.code">{{ c.flag }} {{ c.code }}</option>

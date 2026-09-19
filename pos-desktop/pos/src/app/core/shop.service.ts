@@ -39,7 +39,7 @@ export class ShopService {
   private api = inject(ApiService);
   private lang = inject(LangService);
   private themeSvc = inject(ThemeService);
-  base = 'http://localhost:4000/api';
+  base = `http://${window.location.hostname}:4000/api`;
 
   settings = signal<ShopSettings>({
     name_en: 'My Restaurant', name_ar: 'مطعمي', logo_url: '', layout: 'topbar',

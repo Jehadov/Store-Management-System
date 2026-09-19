@@ -14,121 +14,349 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
   selector: 'app-admin',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, IconComponent],
-  styles: [`
-    .modal-popup { background: rgba(0,0,0,.5); }
-    .modal-popup .modal-dialog { max-width: 640px; }
-    .modal-popup .modal-content { border: none; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
-    .admin-shell { display: flex; gap: 16px; align-items: flex-start; }
-    .admin-nav {
-      width: 210px; flex-shrink: 0; position: sticky; top: 12px;
-      background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
-      border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 2px;
-    }
-    .admin-nav button {
-      text-align: start; border: none; background: none; color: inherit;
-      border-radius: 10px; padding: 9px 12px; font-weight: 500; cursor: pointer; font-size: .92rem;
-    }
-    .admin-nav button:hover { background: var(--bs-tertiary-bg); }
-    .admin-nav button.active { background: #111; color: #fff; }
-    .admin-main { flex-grow: 1; min-width: 0; background: var(--bs-tertiary-bg); border-radius: 20px; padding: 16px; }
-    .kpi-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .kpi { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 16px; padding: 16px; }
-    .kpi .kpi-icon { font-size: 1.4rem; }
-    .kpi .kpi-num { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
-    .kpi .kpi-label { font-size: .82rem; color: var(--bs-secondary-color); }
-    a.kpi { text-decoration: none; color: inherit; display: block; transition: box-shadow .15s; }
-    a.kpi:hover { box-shadow: 0 6px 18px rgba(0,0,0,.1); color: inherit; }
-    .ov-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); margin-top: 12px; }
-    .panel { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 16px; padding: 16px; }
-    .panel h6 { font-weight: 700; margin-bottom: 12px; }
-    .a-pill { font-size: .72rem; font-weight: 600; border-radius: 999px; padding: 2px 10px; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); }
-    .a-pill[data-s="pending"] { background: #fef3c7; color: #92400e; }
-    .a-pill[data-s="preparing"] { background: #dbeafe; color: #1e40af; }
-    .a-pill[data-s="ready"], .a-pill[data-s="completed"] { background: #dcfce7; color: #166534; }
-    .chart { display: flex; align-items: flex-end; gap: 6px; height: 180px; padding-top: 8px; }
-    .chart .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
-    .chart .bar { width: 70%; max-width: 34px; border-radius: 6px 6px 0 0; background: #111; min-height: 3px; }
-    .chart .bar.peak { background: #16a34a; }
-    .chart .bar-lab { font-size: .68rem; color: var(--bs-secondary-color); margin-top: 4px; white-space: nowrap; }
-    .chart-tip {
-      position: fixed; z-index: 100; pointer-events: none;
-      background: #111; color: #fff; border-radius: 10px; padding: 8px 12px;
-      font-size: .82rem; box-shadow: 0 8px 22px rgba(0,0,0,.3); white-space: nowrap;
-    }
-    .donut-wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-    .donut { width: 140px; height: 140px; flex-shrink: 0; }
-    .donut-legend { display: flex; flex-direction: column; gap: 6px; font-size: .85rem; }
-    .donut-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-inline-end: 6px; }
-    .pay-row { margin-bottom: 10px; font-size: .85rem; }
-    .pay-track { height: 8px; border-radius: 999px; background: var(--bs-tertiary-bg); margin-top: 4px; overflow: hidden; }
-    .pay-fill { height: 100%; border-radius: 999px; background: #111; }
-    .podium-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bs-border-color); }
-    .podium-row:last-child { border-bottom: none; }
-    .podium-medal { font-size: 1.3rem; width: 34px; text-align: center; flex-shrink: 0; }
-    .podium-bar { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #111827, #4c1d95); margin-top: 4px; }
-    .admin-table-card { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 16px; overflow: hidden; }
-    .admin-table-card table { margin-bottom: 0; font-size: .92rem; }
-    .admin-table-card tr:first-child th {
-      text-transform: uppercase; font-size: .7rem; letter-spacing: .06em;
-      color: var(--bs-secondary-color); background: var(--bs-tertiary-bg);
-      padding: 12px 16px; border-bottom: 2px solid var(--bs-border-color); white-space: nowrap;
-    }
-    .admin-table-card td { padding: 12px 16px; vertical-align: middle; }
-    .admin-table-card tr:nth-child(n+2):hover td { background: var(--bs-tertiary-bg); }
-    .admin-table-card tr:last-child td { border-bottom: none; }
-    .view-switch { display: inline-flex; background: var(--bs-tertiary-bg); border-radius: 999px; padding: 3px; }
-    .view-switch button { border: none; background: none; color: inherit; border-radius: 999px; padding: 4px 12px; font-size: .8rem; cursor: pointer; }
-    .view-switch button.active { background: var(--bs-body-bg); box-shadow: 0 1px 4px rgba(0,0,0,.15); font-weight: 700; }
-    .grid-cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
-    .g-card { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; transition: box-shadow .15s, transform .15s; }
-    .g-card:hover { box-shadow: 0 8px 22px rgba(0,0,0,.09); transform: translateY(-2px); }
-    .g-card img.g-img { width: 100%; height: 150px; object-fit: cover; background: var(--bs-tertiary-bg); }
-    .g-card .g-ph { height: 110px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; background: var(--bs-tertiary-bg); }
-    .g-card .g-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 2px; flex-grow: 1; }
-    .g-card .g-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .g-card .g-sub { font-size: .8rem; color: var(--bs-secondary-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .g-card .g-price { font-weight: 800; font-size: 1.02rem; margin-top: 2px; }
-    .g-card .g-actions { display: flex; gap: 6px; margin-top: 10px; }
-    .g-card.occupied { border-color: #f59e0b; border-width: 2px; }
-    @media (max-width: 900px) {
-      .admin-shell { flex-direction: column; }
-      .admin-nav { width: 100%; position: static; flex-direction: row; overflow-x: auto; }
-      .admin-nav button { white-space: nowrap; }
-      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .ov-grid { grid-template-columns: minmax(0, 1fr); }
-    }
-  `],
-  template: `
+    styles: [`
+      :host { display: block; }
+
+      /* ===== SIDEBAR OVERLAY (mobile) ===== */
+      .sidebar-backdrop {
+        display: none;
+        position: fixed; inset: 0; z-index: 998;
+        background: rgba(0,0,0,.55);
+        opacity: 0; transition: opacity .3s ease;
+      }
+      .sidebar-backdrop.open { display: block; opacity: 1; }
+
+      /* ===== ADMIN SHELL ===== */
+      .admin-shell { display: flex; gap: 20px; align-items: flex-start; min-height: calc(100vh - 40px); }
+
+      /* ===== NAVIGATION ===== */
+      .admin-nav {
+        width: 230px; flex-shrink: 0; position: sticky; top: 16px;
+        background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
+        border-radius: 20px; padding: 12px; display: flex; flex-direction: column; gap: 2px;
+        transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+        z-index: 1000;
+      }
+      .admin-nav button {
+        text-align: start; border: none; background: none; color: inherit;
+        border-radius: 12px; padding: 10px 14px; font-weight: 500; cursor: pointer; font-size: .92rem;
+        display: flex; align-items: center; gap: 10px; transition: all .15s ease;
+        position: relative; overflow: hidden;
+      }
+      .admin-nav button::before {
+        content: ''; position: absolute; inset: 0; border-radius: 12px;
+        background: linear-gradient(135deg, #111 0%, #333 100%);
+        opacity: 0; transition: opacity .15s ease;
+      }
+      .admin-nav button:hover { color: #fff; }
+      .admin-nav button:hover::before { opacity: 1; }
+      .admin-nav button span { position: relative; z-index: 1; }
+      .admin-nav button svg { position: relative; z-index: 1; flex-shrink: 0; }
+      .admin-nav button.active { color: #fff; }
+      .admin-nav button.active::before { opacity: 1; }
+      .admin-nav button.active span { font-weight: 700; }
+      .admin-nav .nav-divider { height: 1px; background: var(--bs-border-color); margin: 6px 10px; }
+
+      /* ===== MAIN CONTENT ===== */
+      .admin-main {
+        flex-grow: 1; min-width: 0;
+        background: var(--bs-tertiary-bg);
+        border-radius: 20px; padding: 28px;
+        transition: all .3s ease;
+        width: 100%;
+        overflow-x: hidden;
+      }
+      .admin-main h2 {
+        font-size: 1.75rem; font-weight: 800; margin-bottom: 4px;
+        background: linear-gradient(135deg, var(--bs-body-color), var(--bs-secondary-color));
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      }
+      .content-inner { width: 100%; }
+      .content-inner.max { max-width: 1280px; margin: 0 auto; }
+
+      /* ===== OVERVIEW GRID ===== */
+      .ov-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+      .ov-grid > * { min-width: 0; }
+
+      /* ===== TABLE SCROLL WRAPPER ===== */
+      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 18px; }
+      .table-scroll table { min-width: 500px; }
+      .table-scroll::-webkit-scrollbar { height: 6px; }
+      .table-scroll::-webkit-scrollbar-track { background: var(--bs-tertiary-bg); border-radius: 3px; }
+      .table-scroll::-webkit-scrollbar-thumb { background: var(--bs-border-color); border-radius: 3px; }
+
+      /* ===== HAMBURGER BUTTON ===== */
+      .hamburger {
+        display: none; align-items: center; justify-content: center;
+        width: 42px; height: 42px; border: 1px solid var(--bs-border-color);
+        border-radius: 12px; background: var(--bs-body-bg); cursor: pointer;
+        transition: all .15s ease; font-size: 1.2rem; color: var(--bs-body-color);
+      }
+      .hamburger:hover { background: var(--bs-tertiary-bg); border-color: var(--bs-secondary-color); }
+      .hamburger:active { transform: scale(.95); }
+
+      /* ===== KPI CARDS ===== */
+      .kpi-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, 1fr); }
+      .kpi {
+        background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
+        border-radius: 18px; padding: 20px; position: relative; overflow: hidden;
+        transition: all .2s ease;
+      }
+      .kpi::after {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        background: linear-gradient(90deg, var(--bs-primary), var(--bs-secondary));
+        opacity: 0; transition: opacity .2s;
+      }
+      a.kpi:hover, .kpi:hover { box-shadow: 0 8px 24px rgba(0,0,0,.08); transform: translateY(-2px); border-color: transparent; }
+      a.kpi:hover::after, .kpi:hover::after { opacity: 1; }
+      a.kpi { text-decoration: none; color: inherit; display: block; }
+      .kpi .kpi-icon { font-size: 1.5rem; margin-bottom: 8px; opacity: .7; }
+      .kpi .kpi-num { font-size: 1.75rem; font-weight: 800; line-height: 1.2; letter-spacing: -.02em; }
+      .kpi .kpi-label { font-size: .82rem; color: var(--bs-secondary-color); font-weight: 500; }
+
+      /* ===== PANEL ===== */
+      .panel {
+        background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
+        border-radius: 18px; padding: 20px; overflow: hidden;
+        transition: all .2s ease;
+      }
+      .panel:hover { box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+      .panel h6 { font-weight: 700; margin-bottom: 14px; font-size: .95rem; color: var(--bs-body-color); }
+
+      /* ===== CHART ===== */
+      .chart { display: flex; align-items: flex-end; gap: 5px; height: 180px; padding-top: 8px; }
+      .chart .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+      .chart .bar { width: 70%; max-width: 36px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #111827, #374151); min-height: 3px; transition: height .3s ease; }
+      .chart .bar.peak { background: linear-gradient(180deg, #16a34a, #22c55e); }
+      .chart .bar:hover { opacity: .8; }
+      .chart .bar-lab { font-size: .68rem; color: var(--bs-secondary-color); margin-top: 4px; white-space: nowrap; }
+      .chart-tip {
+        position: fixed; z-index: 100; pointer-events: none;
+        background: #111827; color: #fff; border-radius: 12px; padding: 10px 14px;
+        font-size: .82rem; box-shadow: 0 10px 30px rgba(0,0,0,.3); white-space: nowrap;
+      }
+
+      /* ===== DONUT ===== */
+      .donut-wrap { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+      .donut { width: 140px; height: 140px; flex-shrink: 0; }
+      .donut-legend { display: flex; flex-direction: column; gap: 8px; font-size: .85rem; }
+      .donut-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-inline-end: 6px; }
+
+      /* ===== PAY ROW ===== */
+      .pay-row { margin-bottom: 12px; font-size: .85rem; transition: all .15s; padding: 4px 0; border-radius: 8px; padding-left: 8px; padding-right: 8px; }
+      .pay-row:hover { background: var(--bs-tertiary-bg); }
+      .pay-track { height: 8px; border-radius: 999px; background: var(--bs-tertiary-bg); margin-top: 4px; overflow: hidden; }
+      .pay-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--bs-primary), var(--bs-secondary)); transition: width .5s ease; }
+
+      /* ===== PODIUM ===== */
+      .podium-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--bs-border-color); transition: background .15s; border-radius: 8px; padding-left: 8px; padding-right: 8px; }
+      .podium-row:hover { background: var(--bs-tertiary-bg); }
+      .podium-row:last-child { border-bottom: none; }
+      .podium-row > .flex-grow-1 { min-width: 0; }
+      .podium-row b, .donut-legend div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .podium-medal { font-size: 1.3rem; width: 36px; text-align: center; flex-shrink: 0; }
+      .podium-bar { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #111827, #4c1d95); margin-top: 4px; transition: width .5s ease; }
+
+      /* ===== TABLE CARD ===== */
+      .admin-table-card {
+        background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
+        border-radius: 18px; overflow: hidden; transition: box-shadow .2s;
+      }
+      .table-scroll .admin-table-card { border-radius: 0; border-left: none; border-right: none; }
+      .admin-table-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+      .admin-table-card table { margin-bottom: 0; font-size: .92rem; }
+      .admin-table-card tr:first-child th {
+        text-transform: uppercase; font-size: .7rem; letter-spacing: .06em;
+        color: var(--bs-secondary-color); background: var(--bs-tertiary-bg);
+        padding: 14px 18px; border-bottom: 2px solid var(--bs-border-color); white-space: nowrap; font-weight: 600;
+      }
+      .admin-table-card td { padding: 14px 18px; vertical-align: middle; }
+      .admin-table-card tr:not(:first-child):hover td { background: var(--bs-tertiary-bg); }
+      .admin-table-card tr:last-child td { border-bottom: none; }
+
+      /* ===== VIEW SWITCH ===== */
+      .view-switch { display: inline-flex; background: var(--bs-tertiary-bg); border-radius: 12px; padding: 3px; gap: 2px; }
+      .view-switch button { border: none; background: none; color: inherit; border-radius: 10px; padding: 6px 14px; font-size: .8rem; cursor: pointer; transition: all .15s; font-weight: 500; }
+      .view-switch button.active { background: var(--bs-body-bg); box-shadow: 0 2px 6px rgba(0,0,0,.12); font-weight: 700; }
+
+      /* ===== GRID CARDS ===== */
+      .grid-cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+      .g-card {
+        background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
+        border-radius: 20px; overflow: hidden; display: flex; flex-direction: column;
+        transition: all .2s ease;
+      }
+      .g-card:hover { box-shadow: 0 10px 28px rgba(0,0,0,.1); transform: translateY(-3px); }
+      .g-card img.g-img { width: 100%; height: 150px; object-fit: cover; background: var(--bs-tertiary-bg); }
+      .g-card .g-ph { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; background: linear-gradient(135deg, var(--bs-tertiary-bg), var(--bs-body-bg)); }
+      .g-card .g-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1; }
+      .g-card .g-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem; }
+      .g-card .g-sub { font-size: .82rem; color: var(--bs-secondary-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .g-card .g-price { font-weight: 800; font-size: 1.1rem; margin-top: 6px; color: var(--bs-body-color); }
+      .g-card .g-actions { display: flex; gap: 8px; margin-top: 12px; }
+      .g-card.occupied { border-color: #f59e0b; border-width: 2px; }
+
+      /* ===== A PILL ===== */
+      .a-pill { font-size: .72rem; font-weight: 600; border-radius: 999px; padding: 3px 12px; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); }
+      .a-pill[data-s="pending"] { background: #fef3c7; color: #92400e; }
+      .a-pill[data-s="preparing"] { background: #dbeafe; color: #1e40af; }
+      .a-pill[data-s="ready"], .a-pill[data-s="completed"] { background: #dcfce7; color: #166534; }
+
+      /* ===== BADGE ===== */
+      code { word-break: break-all; }
+
+      /* ===== ADMIN TABLE HEADER TOOLBAR ===== */
+      .section-header { margin-bottom: 18px; }
+      .section-header h5 { font-weight: 700; font-size: 1.15rem; }
+
+      /* ===== ALERT ===== */
+      .alert-warning, .alert-info { border-radius: 14px; font-weight: 500; }
+
+      /* ===== MODAL ===== */
+      .modal-popup { background: rgba(0,0,0,.5); backdrop-filter: blur(4px); }
+      .modal-popup .modal-dialog { max-width: 640px; width: 95%; margin: 1rem auto; }
+      .modal-popup .modal-content { border: none; border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,.25); }
+
+      /* ===== MOBILE: < 1024px ===== */
+      @media (max-width: 1024px) {
+        .admin-main { padding: 18px; }
+        .admin-main h2 { font-size: 1.5rem; }
+        .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+        .chart { height: 160px; }
+        .ov-grid { grid-template-columns: 1fr; }
+        .content-inner.max { padding: 0 4px; }
+      }
+
+      /* ===== MOBILE: < 768px ===== */
+      @media (max-width: 768px) {
+        .hamburger { display: flex; }
+        .admin-shell { flex-direction: column; gap: 12px; }
+
+        .sidebar-backdrop.open { display: block; }
+
+        .admin-nav {
+          position: fixed; top: 0; left: 0; bottom: 0;
+          width: 280px; max-width: 85vw; border-radius: 0; z-index: 1001;
+          transform: translateX(-100%); opacity: 0;
+          overflow-y: auto; padding-top: 20px;
+          box-shadow: 4px 0 24px rgba(0,0,0,.2);
+        }
+        .admin-nav.open { transform: translateX(0); opacity: 1; }
+        .admin-nav button { font-size: 1rem; padding: 12px 16px; }
+        .admin-nav .nav-divider { margin: 8px 14px; }
+
+        .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .kpi { padding: 16px; }
+        .kpi .kpi-num { font-size: 1.4rem; }
+        .kpi .kpi-icon { font-size: 1.3rem; }
+        .admin-main { padding: 14px; border-radius: 16px; }
+        .admin-main h2 { font-size: 1.3rem; }
+        .panel { padding: 16px; }
+        .panel h6 { font-size: .9rem; }
+        .grid-cards { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+        .g-card .g-ph { height: 100px; font-size: 2rem; }
+        .g-card .g-body { padding: 12px; }
+        .chart { height: 140px; gap: 3px; }
+        .donut { width: 110px; height: 110px; }
+        .donut-wrap { gap: 12px; }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .section-header h5 { font-size: 1rem; }
+      }
+
+      /* ===== SMALL MOBILE: < 480px ===== */
+      @media (max-width: 480px) {
+        .admin-main { padding: 10px; border-radius: 12px; }
+        .content-inner.max { padding: 0; }
+        .table-scroll { border-radius: 14px; }
+        .table-scroll table { min-width: 420px; font-size: .85rem; }
+        .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+        .kpi { padding: 12px; }
+        .kpi .kpi-num { font-size: 1.25rem; }
+        .kpi .kpi-label { font-size: .75rem; }
+        .panel { padding: 12px; border-radius: 14px; }
+        .grid-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+        .g-card .g-body { padding: 10px; }
+        .g-card .g-name { font-size: .9rem; }
+        .g-card .g-price { font-size: .95rem; }
+        .chart { height: 120px; }
+        .chart .bar-lab { font-size: .6rem; }
+        .donut { width: 90px; height: 90px; }
+        .donut-legend { font-size: .78rem; }
+        .admin-table-card td { padding: 10px 12px; }
+        .view-switch { flex-wrap: wrap; }
+        .view-switch button { padding: 4px 10px; font-size: .75rem; }
+        .modal-popup .modal-dialog { width: 98%; margin: .3rem auto; }
+        .admin-nav button { padding: 10px 14px; font-size: .9rem; }
+      }
+
+      /* ===== ANIMATIONS ===== */
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .kpi-grid > * { animation: fadeInUp .4s ease backwards; }
+      .kpi-grid > *:nth-child(1) { animation-delay: .05s; }
+      .kpi-grid > *:nth-child(2) { animation-delay: .1s; }
+      .kpi-grid > *:nth-child(3) { animation-delay: .15s; }
+      .kpi-grid > *:nth-child(4) { animation-delay: .2s; }
+
+      /* ===== SCROLLBAR ===== */
+      .admin-nav::-webkit-scrollbar { width: 4px; }
+      .admin-nav::-webkit-scrollbar-track { background: transparent; }
+      .admin-nav::-webkit-scrollbar-thumb { background: var(--bs-border-color); border-radius: 4px; }
+
+      /* ===== TOOLBAR BUTTON ===== */
+      .toolbar-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 16px; border-radius: 12px; font-size: .85rem; font-weight: 600;
+        transition: all .15s ease;
+      }
+    `],
+    template: `
     <div class="container py-3" [dir]="lang.dir()">
-      <h2>{{ lang.pick('Administration', 'الإدارة') }}</h2>
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">{{ lang.pick('Administration', 'الإدارة') }}</h2>
+        <button class="hamburger" (click)="toggleSidebar()" *ngIf="isAdmin()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
       <p *ngIf="!isAdmin()" class="alert alert-warning">
         {{ lang.pick('Admin login required.', 'يلزم الدخول كمدير.') }} <a routerLink="/login">{{ lang.pick('Go to login', 'الذهاب للدخول') }}</a>
       </p>
       <div *ngIf="isAdmin()" class="admin-shell">
-        <aside class="admin-nav">
-          <button [class.active]="tab()==='overview'" (click)="setTab('overview')"><app-icon name="chart" [size]="17" /> {{ lang.pick('Overview', 'نظرة عامة') }}</button>
-          <button [class.active]="tab()==='analytics'" (click)="setTab('analytics')"><app-icon name="trend" [size]="17" /> {{ lang.pick('Analytics', 'التحليلات') }}</button>
-          <button [class.active]="tab()==='products'" (click)="setTab('products')"><app-icon name="box" [size]="17" /> {{ lang.pick('Products', 'المنتجات') }}</button>
-          <button [class.active]="tab()==='categories'" (click)="setTab('categories')"><app-icon name="grid" [size]="17" /> {{ lang.pick('Categories', 'الفئات') }}</button>
-          <button [class.active]="tab()==='videos'" (click)="setTab('videos')"><app-icon name="video" [size]="17" /> {{ lang.pick('Videos', 'الفيديوهات') }}</button>
-          <button [class.active]="tab()==='employees'" (click)="setTab('employees')"><app-icon name="users" [size]="17" /> {{ lang.pick('Employees', 'الموظفون') }}</button>
-          <button [class.active]="tab()==='offers'" (click)="setTab('offers')"><app-icon name="tag" [size]="17" /> {{ lang.pick('Offers', 'العروض') }}</button>
-          <button [class.active]="tab()==='tables'" (click)="setTab('tables')"><app-icon name="chair" [size]="17" /> {{ lang.pick('Tables', 'الطاولات') }}</button>
-          <button [class.active]="tab()==='dayclose'" (click)="setTab('dayclose');loadEod()"><app-icon name="pos" [size]="17" /> {{ lang.pick('Day close', 'إغلاق اليوم') }}</button>
-          <button [class.active]="tab()==='expenses'" (click)="setTab('expenses')"><app-icon name="cash" [size]="17" /> {{ lang.pick('Losses', 'المصاريف') }}</button>
-          <button [class.active]="tab()==='settings'" (click)="setTab('settings')"><app-icon name="admin" [size]="17" /> {{ lang.pick('Settings', 'الإعدادات') }}</button>
+        <div class="sidebar-backdrop" [class.open]="sidebarOpen()" (click)="sidebarOpen.set(false)"></div>
+        <aside class="admin-nav" [class.open]="sidebarOpen()">
+          <button [class.active]="tab()==='overview'" (click)="setTab('overview')"><app-icon name="chart" [size]="17" /> <span>{{ lang.pick('Overview', 'نظرة عامة') }}</span></button>
+          <button [class.active]="tab()==='analytics'" (click)="setTab('analytics')"><app-icon name="trend" [size]="17" /> <span>{{ lang.pick('Analytics', 'التحليلات') }}</span></button>
+          <div class="nav-divider"></div>
+          <button [class.active]="tab()==='products'" (click)="setTab('products')"><app-icon name="box" [size]="17" /> <span>{{ lang.pick('Products', 'المنتجات') }}</span></button>
+          <button [class.active]="tab()==='categories'" (click)="setTab('categories')"><app-icon name="grid" [size]="17" /> <span>{{ lang.pick('Categories', 'الفئات') }}</span></button>
+          <button [class.active]="tab()==='videos'" (click)="setTab('videos')"><app-icon name="video" [size]="17" /> <span>{{ lang.pick('Videos', 'الفيديوهات') }}</span></button>
+          <button [class.active]="tab()==='employees'" (click)="setTab('employees')"><app-icon name="users" [size]="17" /> <span>{{ lang.pick('Employees', 'الموظفون') }}</span></button>
+          <div class="nav-divider"></div>
+          <button [class.active]="tab()==='offers'" (click)="setTab('offers')"><app-icon name="tag" [size]="17" /> <span>{{ lang.pick('Offers', 'العروض') }}</span></button>
+          <button [class.active]="tab()==='tables'" (click)="setTab('tables')"><app-icon name="chair" [size]="17" /> <span>{{ lang.pick('Tables', 'الطاولات') }}</span></button>
+          <button [class.active]="tab()==='dayclose'" (click)="setTab('dayclose');loadEod()"><app-icon name="pos" [size]="17" /> <span>{{ lang.pick('Day close', 'إغلاق اليوم') }}</span></button>
+          <button [class.active]="tab()==='expenses'" (click)="setTab('expenses')"><app-icon name="cash" [size]="17" /> <span>{{ lang.pick('Losses', 'المصاريف') }}</span></button>
+          <div class="nav-divider"></div>
+          <button [class.active]="tab()==='settings'" (click)="setTab('settings')"><app-icon name="admin" [size]="17" /> <span>{{ lang.pick('Settings', 'الإعدادات') }}</span></button>
         </aside>
         <div class="admin-main">
         <p *ngIf="msg()" class="alert alert-info">{{ msg() }}</p>
 
-        <!-- ANALYTICS -->
-        <section *ngIf="tab()==='analytics'">
-          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+         <!-- ANALYTICS -->
+         <section *ngIf="tab()==='analytics'">
+           <div class="content-inner max">
+           <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
             <h5 class="mb-0">{{ lang.pick('Sales analytics', 'تحليلات المبيعات') }}</h5>
             <div class="d-flex gap-2 flex-wrap">
               <div class="view-switch">
+                <button [class.active]="viewMode()==='days' && range()===1" (click)="setDays(1)">{{ lang.pick('Today', 'اليوم') }}</button>
                 <button [class.active]="viewMode()==='preset' && preset()==='last-week'" (click)="setPreset('last-week')">{{ lang.pick('Last week', 'الأسبوع الماضي') }}</button>
                 <button [class.active]="viewMode()==='preset' && preset()==='last-month'" (click)="setPreset('last-month')">{{ lang.pick('Last month', 'الشهر الماضي') }}</button>
+                <button [class.active]="viewMode()==='month'" (click)="setThisMonth()">{{ lang.pick('This month', 'هذا الشهر') }}</button>
               </div>
               <select class="form-select form-select-sm" style="width:auto" [ngModel]="viewMode()==='month' ? month() : ''" (ngModelChange)="setMonth($any($event))">
                 <option value="">{{ lang.pick('Month...', 'شهر...') }}</option>
@@ -163,7 +391,7 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
             <div class="chart">
               <div class="bar-col" *ngFor="let d of revenue(); let i = index">
                 <div class="bar" [style.height.%]="barPct(d.revenue)"
-                  (mouseenter)="showTip($event, fmt(d.revenue) + ' JD', d.orders + ' ' + lang.pick('orders', 'طلبات') + ' · ' + d.day)" (mousemove)="moveTip($event)" (mouseleave)="hideTip()"></div>
+                  (mouseenter)="showTip($event, fmt(d.revenue) + ' JD', d.orders + ' ' + lang.pick('orders', 'طلبات') + ' · ' + d.day)" (mousemove)="moveTip($event)" (mouseleave)="hideTip()" (click)="showTip($event, fmt(d.revenue) + ' JD', d.orders + ' ' + lang.pick('orders', 'طلبات') + ' · ' + d.day)"></div>
                 <div class="bar-lab">{{ tickLabel(d, i) }}</div>
               </div>
             </div>
@@ -184,7 +412,7 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
                       <circle cx="60" cy="60" r="48" fill="none" [attr.stroke]="seg.color" stroke-width="18"
                         pathLength="100" [attr.stroke-dasharray]="seg.pct + ' ' + (100 - seg.pct)"
                         [attr.stroke-dashoffset]="-seg.offset" transform="rotate(-90 60 60)"
-                        (mouseenter)="showTip($event, seg.label + ' · ' + fmt(seg.pct, 0) + '%', fmt(mixTotal() * seg.pct / 100) + ' JD')" (mousemove)="moveTip($event)" (mouseleave)="hideTip()" style="cursor:pointer" />
+                        (mouseenter)="showTip($event, seg.label + ' · ' + fmt(seg.pct, 0) + '%', fmt(mixTotal() * seg.pct / 100) + ' JD')" (mousemove)="moveTip($event)" (mouseleave)="hideTip()" (click)="showTip($event, seg.label + ' · ' + fmt(seg.pct, 0) + '%', fmt(mixTotal() * seg.pct / 100) + ' JD')" style="cursor:pointer" />
                     }
                     <text x="60" y="67" text-anchor="middle" fill="currentColor" font-size="15" font-weight="800">{{ mixTotal() | number:'1.0-0' }}</text>
                   </svg>
@@ -202,7 +430,7 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
               <h6>{{ lang.pick('Payment mix', 'طرق الدفع') }}</h6>
               @if (mix()?.payment?.length) {
                 @for (p of mix().payment; track p.key) {
-                  <div class="pay-row" (mouseenter)="showTip($event, fmt(p.revenue) + ' JD', payLabel(p.key) + ' · ' + p.orders + ' ' + lang.pick('orders', 'طلبات'))" (mousemove)="moveTip($event)" (mouseleave)="hideTip()">
+                  <div class="pay-row" (mouseenter)="showTip($event, fmt(p.revenue) + ' JD', payLabel(p.key) + ' · ' + p.orders + ' ' + lang.pick('orders', 'طلبات'))" (mousemove)="moveTip($event)" (mouseleave)="hideTip()" (click)="showTip($event, fmt(p.revenue) + ' JD', payLabel(p.key) + ' · ' + p.orders + ' ' + lang.pick('orders', 'طلبات'))">
                     <div class="d-flex justify-content-between"><span>{{ payLabel(p.key) }}</span><b>{{ p.revenue | number:'1.2-2' }}</b></div>
                     <div class="pay-track"><div class="pay-fill" [style.width.%]="payPct(p.revenue)"></div></div>
                   </div>
@@ -219,7 +447,7 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
             <div class="chart" style="height:140px">
               <div class="bar-col" *ngFor="let h of hours()">
                 <div class="bar" [class.peak]="h.hour === peakHour()" [style.height.%]="hourPct(h.orders)"
-                  (mouseenter)="showTip($event, h.orders + ' ' + lang.pick('orders', 'طلبات'), h.hour + ':00 · ' + fmt(h.revenue) + ' JD')" (mousemove)="moveTip($event)" (mouseleave)="hideTip()"></div>
+                  (mouseenter)="showTip($event, h.orders + ' ' + lang.pick('orders', 'طلبات'), h.hour + ':00 · ' + fmt(h.revenue) + ' JD')" (mousemove)="moveTip($event)" (mouseleave)="hideTip()" (click)="showTip($event, h.orders + ' ' + lang.pick('orders', 'طلبات'), h.hour + ':00 · ' + fmt(h.revenue) + ' JD')"></div>
                 <div class="bar-lab">{{ h.hour }}</div>
               </div>
             </div>
@@ -236,7 +464,7 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
                       <circle cx="60" cy="60" r="48" fill="none" [attr.stroke]="seg.color" stroke-width="18"
                         pathLength="100" [attr.stroke-dasharray]="seg.pct + ' ' + (100 - seg.pct)"
                         [attr.stroke-dashoffset]="-seg.offset" transform="rotate(-90 60 60)"
-                        (mouseenter)="showTip($event, seg.label + ' · ' + fmt(seg.pct, 0) + '%', fmt(catTotal() * seg.pct / 100) + ' JD')" (mousemove)="moveTip($event)" (mouseleave)="hideTip()" style="cursor:pointer" />
+                        (mouseenter)="showTip($event, seg.label + ' · ' + fmt(seg.pct, 0) + '%', fmt(catTotal() * seg.pct / 100) + ' JD')" (mousemove)="moveTip($event)" (mouseleave)="hideTip()" (click)="showTip($event, seg.label + ' · ' + fmt(seg.pct, 0) + '%', fmt(catTotal() * seg.pct / 100) + ' JD')" style="cursor:pointer" />
                     }
                     <text x="60" y="67" text-anchor="middle" fill="currentColor" font-size="15" font-weight="800">{{ catTotal() | number:'1.0-0' }}</text>
                   </svg>
@@ -272,7 +500,7 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
               @if (top().length) {
                 <div class="mb-0">
                   <div class="podium-row" *ngFor="let t of top(); let i = index"
-                    (mouseenter)="showTip($event, t.name + ' ×' + t.qty, fmt(t.revenue) + ' JD')" (mousemove)="moveTip($event)" (mouseleave)="hideTip()">
+                    (mouseenter)="showTip($event, t.name + ' ×' + t.qty, fmt(t.revenue) + ' JD')" (mousemove)="moveTip($event)" (mouseleave)="hideTip()" (click)="showTip($event, t.name + ' ×' + t.qty, fmt(t.revenue) + ' JD')">
                     <span class="podium-medal">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1) }}</span>
                     <div class="flex-grow-1">
                       <div class="d-flex justify-content-between small"><b>{{ t.name }}</b><span>{{ t.revenue | number:'1.2-2' }} JD</span></div>
@@ -296,14 +524,16 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
                   <li class="d-flex justify-content-between py-1"><span>{{ lang.pick('Cancelled', 'ملغي') }}</span><b>{{ overview().counts.orders.cancelled || 0 }}</b></li>
                 </ul>
               }
-            </div>
-          </div>
-        </section>
+             </div>
+           </div>
+         </div>
+         </section>
 
-        <!-- OVERVIEW: today ops command view -->
-        <section *ngIf="tab()==='overview' && overview()">
-          @if (overview().attention?.length) {
-            <div class="alert alert-danger d-flex align-items-center gap-2">
+         <!-- OVERVIEW: today ops command view -->
+         <section *ngIf="tab()==='overview' && overview()">
+          <div class="content-inner max">
+           @if (overview().attention?.length) {
+            <div class="alert alert-danger d-flex align-items-center gap-2 flex-wrap">
               <b>⚠️ {{ overview().attention.length }} {{ lang.pick('orders waiting 15+ min:', 'طلبات تنتظر +15 دقيقة:') }}</b>
               <span>{{ attentionList() }}</span>
               <a routerLink="/kitchen" class="btn btn-sm btn-danger ms-auto">{{ lang.pick('Open kitchen', 'افتح المطبخ') }}</a>
@@ -341,20 +571,18 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
                 <h6 class="mb-0">{{ lang.pick('Recent orders', 'الطلبات الأخيرة') }}</h6>
                 <a routerLink="/orders" class="small">{{ lang.pick('View all →', 'عرض الكل ←') }}</a>
               </div>
-              <table class="table table-sm align-middle" style="margin-bottom:0">
-                <tr *ngFor="let o of overview().recentOrders">
-                  <td><b>#{{ o.order_number }}</b><div class="small text-muted">{{ o.created_at | date:'shortTime' }}</div></td>
-                  <td><span class="a-pill" [attr.data-s]="o.status">{{ o.status }}</span></td>
-                  <td class="text-end fw-bold">{{ o.total_amount }}</td>
-                </tr>
-              </table>
+              <div *ngFor="let o of overview().recentOrders" class="d-flex align-items-center gap-2 border-bottom py-2">
+                <div><b>#{{ o.order_number }}</b><div class="small text-muted">{{ o.created_at | date:'shortTime' }}</div></div>
+                <span class="a-pill" [attr.data-s]="o.status">{{ o.status }}</span>
+                <b class="ms-auto">{{ o.total_amount }}</b>
+              </div>
             </div>
             <div class="panel">
               <h6>{{ lang.pick('Needs restock', 'يحتاج إعادة تخزين') }}</h6>
               @if (overview().lowStock.length) {
                 <ul class="list-unstyled mb-0">
-                  <li *ngFor="let s of overview().lowStock" class="d-flex justify-content-between border-bottom py-1 small">
-                    <span>{{ s.product }} · {{ s.value_en }}</span><b class="text-danger">{{ s.quantity }}</b>
+                  <li *ngFor="let s of overview().lowStock" class="d-flex justify-content-between gap-2 border-bottom py-1 small">
+                    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.product }} · {{ s.value_en }}</span><b class="text-danger flex-shrink-0">{{ s.quantity }}</b>
                   </li>
                 </ul>
               } @else {
@@ -362,11 +590,12 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
               }
               <hr />
               <div class="d-flex justify-content-between small"><span class="text-muted">{{ lang.pick('Total revenue', 'إجمالي الإيراد') }}</span><b>{{ overview().revenue.total | number:'1.2-2' }}</b></div>
-            </div>
-          </div>
-        </section>
+             </div>
+           </div>
+         </div>
+         </section>
 
-        <!-- PRODUCTS -->
+         <!-- PRODUCTS -->
         <section *ngIf="tab()==='products'">
           <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
             <h5 class="mb-0">{{ lang.pick('Products', 'المنتجات') }} ({{ products().length }})</h5>
@@ -380,10 +609,10 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
           </div>
           @if (listView() === 'cards') {
             <div class="grid-cards">
-              <div class="g-card" *ngFor="let p of products()">
+              <div class="g-card" *ngFor="let p of products()" [class.occupied]="p.is_active === false">
                 <img class="g-img" [src]="prodImg(p)" [alt]="p.name_en" loading="lazy" />
                 <div class="g-body">
-                  <div class="g-name">{{ p.name_en }}</div>
+                  <div class="g-name">{{ p.name_en }} @if (p.is_active === false) { <span class="badge text-bg-secondary">{{ lang.pick('off', 'مغلق') }}</span> }</div>
                   <div class="g-sub">{{ p.name_ar }}</div>
                   <div class="g-price">JD {{ p.price || 0 }}</div>
                   <div class="g-actions">
@@ -397,10 +626,12 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
           <div class="admin-table-card">
           <table class="table table-sm">
             <tr><th></th><th>{{ lang.pick('Name EN / AR', 'الاسم EN / AR') }}</th><th></th></tr>
-            <tr *ngFor="let p of products()">
-              <td><img [src]="prodImg(p)" width="44" height="44" style="object-fit:cover;border-radius:12px" /></td>
-              <td>{{ p.name_en }} / {{ p.name_ar }}</td>
-              <td class="text-end text-nowrap">
+            <tr *ngFor="let p of products()" [class.table-light]="p.is_active === false">
+              <td class="no-label"><img [src]="prodImg(p)" width="44" height="44" style="object-fit:cover;border-radius:12px" /></td>
+              <td [attr.data-label]="lang.pick('Name', 'الاسم')">{{ p.name_en }} / {{ p.name_ar }}
+                @if (p.is_active === false) { <span class="badge text-bg-secondary ms-1">{{ lang.pick('off', 'مغلق') }}</span> }
+              </td>
+              <td class="no-label text-end text-nowrap">
                 <button class="btn btn-sm btn-outline-primary me-1" (click)="startEditProduct(p)">{{ lang.pick('Edit', 'تعديل') }}</button>
                 <button class="btn btn-sm btn-danger" (click)="removeProduct(p)">{{ lang.pick('Remove', 'حذف') }}</button>
               </td>
@@ -442,9 +673,9 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
           <table class="table table-sm">
             <tr><th></th><th>{{ lang.pick('Name', 'الاسم') }}</th><th></th></tr>
             <tr *ngFor="let c of categories()">
-              <td><img *ngIf="c.image" [src]="imgSrc(c.image)" width="44" height="44" style="object-fit:cover;border-radius:12px" /></td>
-              <td>{{ c.name_en }} / {{ c.name_ar }}</td>
-              <td class="text-end text-nowrap">
+              <td class="no-label"><img *ngIf="c.image" [src]="imgSrc(c.image)" width="44" height="44" style="object-fit:cover;border-radius:12px" /></td>
+              <td [attr.data-label]="lang.pick('Name', 'الاسم')">{{ c.name_en }} / {{ c.name_ar }}</td>
+              <td class="no-label text-end text-nowrap">
                 <button class="btn btn-sm btn-outline-primary me-1" (click)="editingCategory.set({ ...c })">{{ lang.pick('Edit', 'تعديل') }}</button>
                 <button class="btn btn-sm btn-danger" (click)="removeCategory(c)">{{ lang.pick('Remove', 'حذف') }}</button>
               </td>
@@ -482,18 +713,20 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
               </div>
             </div>
           } @else {
-          <div class="admin-table-card">
-          <table class="table table-sm">
-            <tr><th>{{ lang.pick('Title', 'العنوان') }}</th><th>URL</th><th>{{ lang.pick('Active', 'نشط') }}</th><th></th></tr>
-            <tr *ngFor="let v of videos()">
-              <td>{{ v.title_en }}</td><td class="text-truncate" style="max-width:220px">{{ v.url }}</td><td>{{ v.is_active ? lang.pick('yes', 'نعم') : lang.pick('no', 'لا') }}</td>
-              <td class="text-end text-nowrap">
-                <button class="btn btn-sm btn-outline-primary me-1" (click)="editingVideo.set({ ...v })">{{ lang.pick('Edit', 'تعديل') }}</button>
-                <button class="btn btn-sm btn-danger" (click)="removeVideo(v)">{{ lang.pick('Remove', 'حذف') }}</button>
-              </td>
-            </tr>
-          </table>
-          </div>
+           <div class="table-scroll">
+           <div class="admin-table-card">
+           <table class="table table-sm">
+             <tr><th>{{ lang.pick('Title', 'العنوان') }}</th><th>URL</th><th>{{ lang.pick('Active', 'نشط') }}</th><th></th></tr>
+             <tr *ngFor="let v of videos()">
+               <td [attr.data-label]="lang.pick('Title', 'العنوان')">{{ v.title_en }}</td><td [attr.data-label]="'URL'" class="text-truncate" style="max-width:220px">{{ v.url }}</td><td [attr.data-label]="lang.pick('Active', 'نشط')">{{ v.is_active ? lang.pick('yes', 'نعم') : lang.pick('no', 'لا') }}</td>
+               <td class="no-label text-end text-nowrap">
+                 <button class="btn btn-sm btn-outline-primary me-1" (click)="editingVideo.set({ ...v })">{{ lang.pick('Edit', 'تعديل') }}</button>
+                 <button class="btn btn-sm btn-danger" (click)="removeVideo(v)">{{ lang.pick('Remove', 'حذف') }}</button>
+               </td>
+             </tr>
+           </table>
+           </div>
+           </div>
           }
         </section>
 
@@ -517,7 +750,8 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
                   <div class="g-name">{{ e.username }}</div>
                   <div class="g-sub">{{ e.role }}</div>
                   <div class="g-actions">
-                    <button class="btn btn-sm btn-outline-danger flex-grow-1" (click)="removeEmployee(e)">{{ lang.pick('Remove', 'حذف') }}</button>
+                    <button class="btn btn-sm btn-outline-primary flex-grow-1" (click)="startEditEmployee(e)">{{ lang.pick('Edit', 'تعديل') }}</button>
+                    <button class="btn btn-sm btn-outline-danger" (click)="removeEmployee(e)">✕</button>
                   </div>
                 </div>
               </div>
@@ -527,8 +761,12 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
           <table class="table table-sm">
             <tr><th>{{ lang.pick('Username', 'اسم المستخدم') }}</th><th>{{ lang.pick('Role', 'الدور') }}</th><th></th></tr>
             <tr *ngFor="let e of employees()">
-              <td>{{ e.username }}</td><td>{{ e.role }}</td>
-              <td class="text-end"><button class="btn btn-sm btn-danger" (click)="removeEmployee(e)">{{ lang.pick('Remove', 'حذف') }}</button></td>
+              <td [attr.data-label]="lang.pick('Username', 'اسم المستخدم')">{{ e.username }}</td>
+              <td [attr.data-label]="lang.pick('Role', 'الدور')">{{ e.role }}</td>
+              <td class="no-label text-end text-nowrap">
+                <button class="btn btn-sm btn-outline-primary me-1" (click)="startEditEmployee(e)">{{ lang.pick('Edit', 'تعديل') }}</button>
+                <button class="btn btn-sm btn-danger" (click)="removeEmployee(e)">{{ lang.pick('Remove', 'حذف') }}</button>
+              </td>
             </tr>
           </table>
           </div>
@@ -567,15 +805,15 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
           <table class="table table-sm align-middle">
             <tr><th>{{ lang.pick('Offer', 'العرض') }}</th><th>{{ lang.pick('Type', 'النوع') }}</th><th>{{ lang.pick('Off', 'الخصم') }}</th><th>{{ lang.pick('Usage', 'الاستخدام') }}</th><th>{{ lang.pick('Ends', 'ينتهي') }}</th><th></th></tr>
             <tr *ngFor="let o of offers()" [class.table-light]="!o.is_active">
-              <td>
+              <td [attr.data-label]="lang.pick('Offer', 'العرض')">
                 <b>{{ o.title_en }}</b>
                 @if (!o.is_active) { <span class="badge text-bg-secondary ms-1">{{ lang.pick('off', 'مغلق') }}</span> }
                 @if (o.coupon_code) { <div class="small"><code>{{ o.coupon_code }}</code></div> }
                 @if (o.min_purchase_amount > 0) { <div class="small text-muted">{{ lang.pick('min', 'أدنى') }} {{ o.min_purchase_amount }} JD</div> }
               </td>
-              <td><span class="badge" [class.text-bg-primary]="o.type==='coupon'" [class.text-bg-success]="o.type!=='coupon'">{{ offerTypeLabel(o) }}</span></td>
-              <td><b>{{ offerValueLabel(o) }}</b></td>
-              <td style="min-width:110px">
+              <td [attr.data-label]="lang.pick('Type', 'النوع')"><span class="badge" [class.text-bg-primary]="o.type==='coupon'" [class.text-bg-success]="o.type!=='coupon'">{{ offerTypeLabel(o) }}</span></td>
+              <td [attr.data-label]="lang.pick('Off', 'الخصم')"><b>{{ offerValueLabel(o) }}</b></td>
+              <td [attr.data-label]="lang.pick('Usage', 'الاستخدام')" style="min-width:110px">
                 <div class="small">{{ o.used_count }}{{ o.usage_limit ? '/' + o.usage_limit : ' ∞' }}</div>
                 @if (o.usage_limit) {
                   <div class="progress" style="height:6px">
@@ -583,8 +821,8 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
                   </div>
                 }
               </td>
-              <td class="small">{{ o.end_date | date:'shortDate' }}</td>
-              <td class="text-end text-nowrap">
+              <td [attr.data-label]="lang.pick('Ends', 'ينتهي')" class="small">{{ o.end_date | date:'shortDate' }}</td>
+              <td class="no-label text-end text-nowrap">
                 <button class="btn btn-sm btn-outline-primary me-1" (click)="startEditOffer(o)">{{ lang.pick('Edit', 'تعديل') }}</button>
                 <button class="btn btn-sm btn-danger" (click)="removeOffer(o)">{{ lang.pick('Remove', 'حذف') }}</button>
               </td>
@@ -697,20 +935,12 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
                 @if (shopForm().logo_url) { <img [src]="shopLogoPreview()" height="48" style="object-fit:contain" /> }
               </div>
               <div class="col-md-12"><input type="file" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" (change)="uploadShopLogo($event)" /></div>
-              <div class="col-md-6">
-                <label class="form-label">{{ lang.pick('Loyalty: points per JD', 'النقاط: نقطة لكل دينار') }}</label>
-                <input class="form-control" type="number" min="0" step="0.1" [(ngModel)]="shopForm().loyalty_earn_per_jd" />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">{{ lang.pick('Loyalty: JD per point', 'النقاط: دينار لكل نقطة') }}</label>
-                <input class="form-control" type="number" min="0" step="0.01" [(ngModel)]="shopForm().loyalty_jd_per_point" />
-              </div>
               <div class="col-md-12">
                 <label class="form-label">{{ lang.pick('Phone numbers (up to 4, shown in footer)', 'أرقام الهواتف (حتى 4, تظهر في التذييل)') }}</label>
                 <div class="d-flex flex-wrap gap-2 mb-2">
                   <span *ngFor="let p of shopForm().phones" class="badge text-bg-light border p-2">
                     <span dir="ltr">{{ p }}</span>
-                    <button class="btn-close btn-close-sm ms-1" style="font-size:.6rem" (click)="removePhone(p)"></button>
+                    <button class="btn btn-sm p-0 px-1" style="color:inherit;line-height:1" (click)="removePhone(p)">✕</button>
                   </span>
                 </div>
                 <div class="d-flex gap-2">
@@ -825,6 +1055,10 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
                   <option value="kg">{{ lang.pick('Kg', 'كيلو') }}</option>
                   <option value="gram">{{ lang.pick('Gram', 'غرام') }}</option>
                 </select>
+              </div>
+              <div class="col-md-12 form-check mt-2">
+                <input type="checkbox" class="form-check-input" [(ngModel)]="editingProduct().is_active" id="editProductActive" />
+                <label class="form-check-label" for="editProductActive">{{ lang.pick('Visible on menu (off keeps order history)', 'ظاهر في القائمة') }}</label>
               </div>
             </div>
             <div class="mt-2">
@@ -956,6 +1190,33 @@ type Tab = 'overview' | 'analytics' | 'products' | 'categories' | 'videos' | 'em
         </div>
       </div>
     </div>
+
+    <!-- EDIT EMPLOYEE (password reset + role) -->
+    @if (editingEmployee(); as ef) {
+      <div class="modal d-block modal-popup" (click)="cancelEditEmployee()">
+        <div class="modal-dialog" (click)="$event.stopPropagation()">
+          <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">{{ lang.pick('Edit employee', 'تعديل موظف') }} · {{ ef.username }}</h5><button class="btn-close" (click)="cancelEditEmployee()"></button></div>
+            <div class="modal-body">
+              <div class="row g-2">
+                <div class="col-md-6"><label class="form-label">{{ lang.pick('New password (leave empty to keep)', 'كلمة مرور جديدة (اترك فارغا للإبقاء)') }}</label><input class="form-control" [(ngModel)]="ef.password" type="password" placeholder="••••" /></div>
+                <div class="col-md-6"><label class="form-label">{{ lang.pick('Role', 'الدور') }}</label>
+                  <select class="form-select" [(ngModel)]="ef.role">
+                    <option value="cashier">{{ lang.pick('cashier', 'كاشير') }}</option>
+                    <option value="kitchen">{{ lang.pick('kitchen', 'مطبخ') }}</option>
+                    <option value="admin">{{ lang.pick('admin', 'مدير') }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary btn-sm" (click)="cancelEditEmployee()">{{ lang.pick('Cancel', 'إلغاء') }}</button>
+              <button class="btn btn-primary btn-sm" (click)="saveEditEmployee()">{{ lang.pick('Save', 'حفظ') }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- ADD TABLE -->
     <div *ngIf="showAddTable()" class="modal d-block modal-popup" (click)="showAddTable.set(false)">
@@ -1156,6 +1417,7 @@ export class AdminComponent implements OnInit {
   private print = inject(PrintService);
   lang = inject(LangService);
   tab = signal<Tab>('overview');
+  sidebarOpen = signal(false);
   msg = signal('');
   overview = signal<any | null>(null);
   revenue = signal<any[]>([]);
@@ -1358,7 +1620,7 @@ export class AdminComponent implements OnInit {
   ];
   shopLogoPreview(): string { return this.api.img(this.shopForm().logo_url); }
 
-  private apiBase = 'http://localhost:4000';
+  private apiBase = `http://${window.location.hostname}:4000`;
   imgSrc(u: string) {
     return u?.startsWith('/uploads/') ? this.apiBase + u : u;
   }
@@ -1373,8 +1635,15 @@ export class AdminComponent implements OnInit {
   }
 
   ngOnInit() { if (this.isAdmin()) this.loadAll(); }
-  setTab(t: Tab) { this.tab.set(t); this.msg.set(''); }
+  setTab(t: Tab) { this.tab.set(t); this.msg.set(''); this.tip.set(null); this.sidebarOpen.set(false); }
+  toggleSidebar() { this.sidebarOpen.update(v => !v); }
   setPreset(p: string) { this.preset.set(p); this.viewMode.set('preset'); this.loadAnalytics(); this.loadExpenses(); }
+  setDays(d: number) { this.range.set(d); this.viewMode.set('days'); this.loadAnalytics(); this.loadExpenses(); }
+  setThisMonth() {
+    const now = new Date();
+    this.year.set(now.getFullYear()); this.month.set(now.getMonth() + 1);
+    this.viewMode.set('month'); this.loadAnalytics(); this.loadExpenses();
+  }
   setMonth(m: any) {
     if (!m) return;
     this.month.set(Number(m)); this.viewMode.set('month'); this.loadAnalytics(); this.loadExpenses();
@@ -1396,6 +1665,7 @@ export class AdminComponent implements OnInit {
     if (m === 'month') return `${this.year()}-${String(this.month()).padStart(2, '0')}`;
     if (m === 'preset') return this.preset() === 'last-week'
       ? this.lang.pick('Last week', 'الأسبوع الماضي') : this.lang.pick('Last month', 'الشهر الماضي');
+    if (this.range() === 1) return this.lang.pick('Today', 'اليوم');
     return this.lang.pick(`Last ${this.range()} days`, `آخر ${this.range()} أيام`);
   }
   pendingCount(): number { return this.overview()?.counts?.orders?.pending || 0; }
@@ -1508,7 +1778,7 @@ export class AdminComponent implements OnInit {
       this.api.topProducts(5, { preset: this.preset() }).subscribe({ next: (t) => this.top.set(t) });
     } else {
       this.api.revenueStats({ days: this.range() }).subscribe({ next: (r) => this.revenue.set(r) });
-      this.api.topProducts(5).subscribe({ next: (t) => this.top.set(t) });
+      this.api.topProducts(5, { days: this.range() }).subscribe({ next: (t) => this.top.set(t) });
     }
     this.api.statYears().subscribe({ next: (y) => this.years.set(y || []) });
     this.api.salesMix().subscribe({ next: (m) => this.mix.set(m) });
@@ -1519,7 +1789,7 @@ export class AdminComponent implements OnInit {
 
   loadAll() {
     this.api.overview().subscribe({ next: (o) => this.overview.set(o), error: () => this.msg.set(this.lang.pick('Overview failed', 'فشل تحميل النظرة العامة')) });
-    this.api.products().subscribe({ next: (p) => this.products.set(p) });
+    this.api.products('all', '', true).subscribe({ next: (p) => this.products.set(p) });
     this.api.categories().subscribe({ next: (c) => this.categories.set(c) });
     this.api.videos().subscribe({ next: (v) => this.videos.set(v) });
     this.api.employees().subscribe({ next: (e) => this.employees.set(e), error: () => this.msg.set(this.lang.pick('Login as admin first', 'سجل الدخول كمدير أولا')) });
@@ -1601,7 +1871,7 @@ export class AdminComponent implements OnInit {
   removeProduct(p: any) {
     this.api.deleteProduct(p.id).subscribe({
       next: () => { this.msg.set(this.lang.pick('Product removed', 'تم حذف المنتج')); this.loadAll(); },
-      error: (e) => this.err(e, this.lang.pick('Remove failed (has orders?)', 'فشل الحذف (عليه طلبات؟)')),
+      error: (e) => this.err(e, e?.error?.error || this.lang.pick('Remove failed', 'فشل الحذف')),
     });
   }
   editingProduct = signal<any | null>(null);
@@ -1613,10 +1883,10 @@ export class AdminComponent implements OnInit {
         const opt = d.variants?.[0]?.options?.[0];
         this.editingProduct.set({
           id: d.id,
-          name_en: d.name_en, name_ar: d.name_ar,
-          shortDescription_en: d.short_desc_en || '', shortDescription_ar: d.short_desc_ar || '',
+          name_en: d.name_en, name_ar: d.name_ar,          shortDescription_en: d.short_desc_en || '', shortDescription_ar: d.short_desc_ar || '',
           longDescription_en: d.long_desc_en || '', longDescription_ar: d.long_desc_ar || '',
           image: d.image || '',
+          is_active: d.is_active !== false,
           price: opt ? Number(opt.price) : null,
           quantity: opt?.quantity == null ? null : Number(opt.quantity),
           unit: opt?.unit_label_en || 'piece',
@@ -1640,7 +1910,7 @@ export class AdminComponent implements OnInit {
       name_en: f.name_en, name_ar: f.name_ar,
       shortDescription_en: f.shortDescription_en, shortDescription_ar: f.shortDescription_ar,
       longDescription_en: f.longDescription_en, longDescription_ar: f.longDescription_ar,
-      image: f.image, category: f.categoryIds,
+      image: f.image, category: f.categoryIds, isActive: !!f.is_active,
     };
     // only replace variants when price/stock/unit changed (protects multi-variant products)
     const price = Number(f.price);
@@ -1762,6 +2032,23 @@ export class AdminComponent implements OnInit {
     this.api.deleteEmployee(e.id).subscribe({
       next: () => { this.msg.set(this.lang.pick('Employee removed', 'تم حذف الموظف')); this.loadAll(); },
       error: (err) => this.err(err, this.lang.pick('Remove employee failed', 'فشل حذف الموظف')),
+    });
+  }
+  editingEmployee = signal<any | null>(null);
+
+  startEditEmployee(e: any) {
+    this.msg.set('');
+    this.editingEmployee.set({ id: e.id, username: e.username, password: '', role: e.role });
+  }
+  cancelEditEmployee() { this.editingEmployee.set(null); }
+  saveEditEmployee() {
+    const f = this.editingEmployee();
+    if (!f) return;
+    const body: any = { role: f.role };
+    if (f.password?.trim()) body.password = f.password.trim();
+    this.api.updateEmployee(f.id, body).subscribe({
+      next: () => { this.editingEmployee.set(null); this.msg.set(this.lang.pick('Employee updated', 'تم تحديث الموظف')); this.loadAll(); },
+      error: (e) => this.err(e, this.lang.pick('Update employee failed', 'فشل تحديث الموظف')),
     });
   }
 

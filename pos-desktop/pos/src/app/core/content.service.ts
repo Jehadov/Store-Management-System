@@ -7,7 +7,7 @@ export interface NewsItem { id: string; title: string; description: string; imag
 @Injectable({ providedIn: 'root' })
 export class ContentService {
   private http = inject(HttpClient);
-  base = 'http://localhost:4000/api';
+  base = `http://${window.location.hostname}:4000/api`;
 
   // Mirrors VideoAndNews.tsx: doc(news_and_video/hero_video) + collection news_and_video
   // Backend has no content table yet -> graceful fallback to null/[] (same as React empty div)

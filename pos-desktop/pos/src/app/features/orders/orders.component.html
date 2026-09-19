@@ -11,30 +11,41 @@
     <button [class.active]="filter()==='pending'" (click)="setFilter('pending')">{{ lang.pick('Pending', 'قيد الانتظار') }}</button>
     <button [class.active]="filter()==='preparing'" (click)="setFilter('preparing')">{{ lang.pick('Preparing', 'قيد التحضير') }}</button>
     <button [class.active]="filter()==='ready'" (click)="setFilter('ready')">{{ lang.pick('Ready', 'جاهز') }}</button>
+    <button [class.active]="filter()==='on_the_way'" (click)="setFilter('on_the_way')">{{ lang.pick('On the way', 'في الطريق') }}</button>
     <button [class.active]="filter()==='completed'" (click)="setFilter('completed')">{{ lang.pick('Done', 'تم') }}</button>
     <button [class.active]="filter()==='cancelled'" (click)="setFilter('cancelled')">{{ lang.pick('Cancelled', 'ملغي') }}</button>
   </div>
 
-  @for (o of orders(); track o.id) {
-    <div class="ord-card" [class.dim]="o.status==='cancelled' || o.status==='completed'">
-      <div class="d-flex align-items-start gap-2">
-        <div>
-          <div class="ord-num">#{{ o.order_number }}</div>
-          <div class="ord-sub">{{ shortId(o.id) }} · {{ ageMin(o.created_at) }} {{ lang.pick('min ago', 'منذ دقيقة') }}</div>
+    @for (o of orders(); track o.id) {
+      <div class="ord-card" [class.dim]="o.status==='cancelled' || o.status==='completed'" [class.ord-tracked]="isTracked(o)">
+        <div class="d-flex align-items-start gap-2">
+          <div>
+            <div class="ord-num">#{{ o.order_number }}</div>
+            <div class="ord-sub">{{ shortId(o.id) }} · {{ ageMin(o.created_at) }} {{ lang.pick('min ago', 'منذ دقيقة') }}</div>
+          </div>
+          <span class="ord-status" [attr.data-s]="o.status">{{ statusName(o.status) }}</span>
+          <span class="ord-status" [attr.data-s]="o.payment_status === 'paid' ? 'completed' : 'pending'">{{ payName(o.payment_status) }}</span>
+          @if (isTracked(o)) {
+            <span class="ord-tracked-badge">{{ lang.pick('Tracked', 'متتبع') }}</span>
+          }
+          <div class="ms-auto ord-total">{{ o.total_amount }} JD</div>
         </div>
-        <span class="ord-status" [attr.data-s]="o.status">{{ statusName(o.status) }}</span>
-        <div class="ms-auto ord-total">{{ o.total_amount }} JD</div>
-      </div>
-      <div class="ord-meta">{{ o.service_method }}{{ o.table_number ? ' · ' + o.table_number : '' }}{{ o.phone_number ? ' · ' + o.phone_number : '' }}</div>
-      <div class="ord-actions">
+        <div class="ord-meta">{{ o.service_method }}{{ o.table_number ? ' · ' + o.table_number : '' }}{{ o.phone_number ? ' · ' + o.phone_number : '' }}
+          @if (isTracked(o)) { <span class="text-primary small ms-1">📱 {{ phoneOfOrder(o) }}</span> }</div>
+        <div class="ord-actions">
         <button class="ord-btn" (click)="toggleDetail(o)">{{ lang.pick('Items', 'الأصناف') }}</button>
         <button class="ord-btn" (click)="printReceipt(o)" title="Print"><app-icon name="print" [size]="16" /></button>
+        @if (o.payment_status !== 'paid') {
+          <button class="ord-btn" (click)="markPaid(o, o.payment_method)">{{ lang.pick('Mark paid', 'تسجيل الدفع') }} ({{ o.payment_method }})</button>
+        }
         @if (o.status==='pending') {
           <button class="ord-btn" (click)="startEdit(o)">{{ lang.pick('Edit', 'تعديل') }}</button>
           <button class="ord-btn primary" (click)="setStatus(o,'preparing')">{{ lang.pick('Start →', 'بدء ←') }}</button>
         }
         @if (o.status==='preparing') { <button class="ord-btn primary" (click)="setStatus(o,'ready')">{{ lang.pick('Ready →', 'جاهز ←') }}</button> }
-        @if (o.status==='ready') { <button class="ord-btn primary" (click)="setStatus(o,'completed')">{{ lang.pick('Done ✓', 'تم ✓') }}</button> }
+        @if (o.status==='ready' && o.service_method==='delivery') { <button class="ord-btn primary" (click)="setStatus(o,'on_the_way')">{{ lang.pick('On the way →', 'في الطريق ←') }}</button> }
+        @if (o.status==='ready' && o.service_method!=='delivery') { <button class="ord-btn primary" (click)="setStatus(o,'completed')">{{ lang.pick('Done ✓', 'تم ✓') }}</button> }
+        @if (o.status==='on_the_way') { <button class="ord-btn primary" (click)="setStatus(o,'completed')">{{ lang.pick('Delivered ✓', 'تم التوصيل ✓') }}</button> }
         @if (o.status!=='cancelled' && o.status!=='completed') {
           <button class="ord-btn danger ms-auto" (click)="setStatus(o,'cancelled')">✕</button>
         }
@@ -68,6 +79,12 @@
             <div class="col-md-4"><label class="form-label">{{ lang.pick('City', 'مدينة') }}</label><input class="form-control" [(ngModel)]="f.city" /></div>
             <div class="col-md-6"><label class="form-label">{{ lang.pick('Address', 'عنوان') }}</label><input class="form-control" [(ngModel)]="f.address" /></div>
             <div class="col-md-6"><label class="form-label">{{ lang.pick('Delivery location', 'موقع التوصيل') }}</label><input class="form-control" [(ngModel)]="f.delivery_location" /></div>
+            <div class="col-md-6"><label class="form-label">{{ lang.pick('Pay method', 'طريقة الدفع') }}</label>
+              <select class="form-select" [(ngModel)]="f.pay_method">
+                <option value="cash">{{ lang.pick('Cash', 'نقدي') }}</option>
+                <option value="cliq">{{ lang.pick('Cliq', 'كليك') }}</option>
+              </select>
+            </div>
           </div>
           <h6>{{ lang.pick('Items', 'الأصناف') }}</h6>
           @for (it of f.items; track $index; let i = $index) {

@@ -331,7 +331,7 @@ async function releaseLoyalty(client: any, row: any) {
 }
 
 // POST /api/orders - server prices, stock check + decrement, coupon/offers, loyalty
-// body: { serviceMethod, tableNumber, payment:{method}, shipping, deliveryMeta, cartItems[], languageAtOrder, couponCode?, loyaltyPhone?, redeemPoints? }
+// body: { serviceMethod, tableNumber, payment:{method}, paid?, shipping, deliveryMeta, cartItems[], languageAtOrder, couponCode?, loyaltyPhone?, redeemPoints? }
 ordersRouter.post('/', async (req, res) => {
   const b = req.body;
   if (!b.cartItems?.length) return res.status(400).json({ error: 'empty cart' });
@@ -352,13 +352,13 @@ ordersRouter.post('/', async (req, res) => {
     const total = money(afterOffers - loy.redeemDiscount);
 
     const o = await client.query(
-      `INSERT INTO orders (service_method, table_number, payment_method, first_name, last_name, phone_number,
+      `INSERT INTO orders (service_method, table_number, payment_method, payment_status, first_name, last_name, phone_number,
         address, city, country, delivery_location, delivery_lat, delivery_lng, total_amount,
         subtotal_amount, discount_amount, coupon_code, language_at_order,
         loyalty_phone, loyalty_earned, loyalty_redeemed, loyalty_discount,
         payment_bill_number, payment_transaction_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) RETURNING *`,
-      [b.serviceMethod, b.tableNumber || null, b.payment?.method || 'cash',
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24) RETURNING *`,
+      [b.serviceMethod, b.tableNumber || null, b.payment?.method || 'cash', b.paid === true ? 'paid' : 'unpaid',
        b.shipping?.firstName || '', b.shipping?.lastName || '', b.shipping?.phoneNumber || '',
        b.shipping?.address || '', b.shipping?.city || 'Amman', b.shipping?.country || 'Jordan',
        b.deliveryMeta?.location || '', b.deliveryMeta?.coordinates?.lat || null, b.deliveryMeta?.coordinates?.lng || null,
@@ -367,17 +367,17 @@ ordersRouter.post('/', async (req, res) => {
        b.paymentDetails?.billNumber || null, b.paymentDetails?.transactionId || null]
     );
     const order = o.rows[0];
-    for (const l of lines) {
-      await client.query(
-        `INSERT INTO order_items (order_id, product_id, variant_option_id, product_name_snapshot, variant_group_name, variant_value, unit_label, unit_price, quantity, addons_snapshot)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-         [order.id, l.productId, l.optionId, l.productName, l.groupName, l.variantValue, l.unitLabel,
-          l.unitPrice, l.quantity, JSON.stringify(l.addonsSnapshot)]
-      );
-      await client.query('UPDATE variant_options SET quantity = quantity - $1 WHERE id=$2 AND quantity IS NOT NULL', [l.quantity, l.optionId]);
-    }
-    await bumpUsage(client, appliedOfferId);
-    await client.query('COMMIT');
+      for (const l of lines) {
+        await client.query(
+          `INSERT INTO order_items (order_id, product_id, variant_option_id, product_name_snapshot, variant_group_name, variant_value, unit_label, unit_price, quantity, line_total, addons_snapshot)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          [order.id, l.productId, l.optionId, l.productName, l.groupName, l.variantValue, l.unitLabel,
+           l.unitPrice, l.quantity, l.lineSubtotal, JSON.stringify(l.addonsSnapshot)]
+        );
+        await client.query('UPDATE variant_options SET quantity = quantity - $1 WHERE id=$2 AND quantity IS NOT NULL', [l.quantity, l.optionId]);
+      }
+      await bumpUsage(client, appliedOfferId);
+      await client.query('COMMIT');
     res.status(201).json({
       orderId: order.id, order_number: order.order_number, subtotal, discount, total,
       loyalty: loy.phone ? { phone: loy.phone, earned: loy.earned, redeemed: loy.redeemed, discount: loy.redeemDiscount } : null,
@@ -477,10 +477,10 @@ ordersRouter.put('/:id', requireAuth, requireRole('admin', 'cashier', 'kitchen')
 
       for (const l of lines) {
         await client.query(
-          `INSERT INTO order_items (order_id, product_id, variant_option_id, product_name_snapshot, variant_group_name, variant_value, unit_label, unit_price, quantity, addons_snapshot)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          `INSERT INTO order_items (order_id, product_id, variant_option_id, product_name_snapshot, variant_group_name, variant_value, unit_label, unit_price, quantity, line_total, addons_snapshot)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
           [req.params.id, l.productId, l.optionId, l.productName, l.groupName, l.variantValue, l.unitLabel,
-           l.unitPrice, l.quantity, JSON.stringify(l.addonsSnapshot)]
+           l.unitPrice, l.quantity, l.lineSubtotal, JSON.stringify(l.addonsSnapshot)]
         );
         await client.query('UPDATE variant_options SET quantity = quantity - $1 WHERE id=$2 AND quantity IS NOT NULL', [l.quantity, l.optionId]);
       }
@@ -580,7 +580,7 @@ ordersRouter.get('/:id', requireAuth, requireRole('admin', 'cashier', 'kitchen')
 });
 
 // PATCH /api/orders/:id/status - cancelling restores stock
-const ORDER_STATUSES = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
+const ORDER_STATUSES = ['pending', 'preparing', 'ready', 'on_the_way', 'completed', 'cancelled'];
 ordersRouter.patch('/:id/status', requireAuth, requireRole('admin', 'cashier', 'kitchen'), async (req, res) => {
   const { status } = req.body || {};
   if (!ORDER_STATUSES.includes(status)) {
@@ -638,6 +638,71 @@ ordersRouter.patch('/:id/status', requireAuth, requireRole('admin', 'cashier', '
   } catch (e) {
     await client.query('ROLLBACK');
     sendOrderError(res, e, 'status update failed');
+  } finally {
+    client.release();
+  }
+});
+
+// PATCH /api/orders/:id/payment - cashier marks paid by order ID (cash now, cliq auto later)
+// body: { payment_status: 'paid'|'unpaid', method?: 'cash'|'cliq' }
+ordersRouter.patch('/:id/payment', requireAuth, requireRole('admin', 'cashier'), async (req, res) => {
+  const { payment_status, method } = req.body || {};
+  if (!['paid', 'unpaid'].includes(payment_status)) {
+    return res.status(400).json({ error: 'payment_status must be paid|unpaid' });
+  }
+  if (method !== undefined && !['cash', 'cliq'].includes(method)) {
+    return res.status(400).json({ error: 'method must be cash|cliq' });
+  }
+  const { rows } = await pool.query(
+    `UPDATE orders SET payment_status=$1, payment_method=COALESCE($2,payment_method) WHERE id=$3 RETURNING *`,
+    [payment_status, method || null, req.params.id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'not found' });
+  res.json(rows[0]);
+});
+
+// PATCH /api/orders/:id/assign - kitchen staff claim an order as their task
+// body: { assigned_to: userId }
+ordersRouter.patch('/:id/assign', requireAuth, requireRole('kitchen'), async (req, res) => {
+  const { assigned_to } = req.body || {};
+  if (!assigned_to) return res.status(400).json({ error: 'assigned_to required' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const o = await client.query('SELECT status FROM orders WHERE id=$1', [req.params.id]);
+    if (!o.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'not found' }); }
+    if (o.rows[0].status === 'cancelled' || o.rows[0].status === 'completed') {
+      await client.query('ROLLBACK'); return res.status(409).json({ error: 'cannot assign cancelled/completed order' });
+    }
+    const { rows } = await client.query(
+      `UPDATE orders SET assigned_to=$1, assigned_at=now() WHERE id=$2 RETURNING *`,
+      [assigned_to, req.params.id]
+    );
+    await client.query('COMMIT');
+    res.json(rows[0]);
+  } catch (e) {
+    await client.query('ROLLBACK');
+    sendOrderError(res, e, 'assign failed');
+  } finally {
+    client.release();
+  }
+});
+
+// PATCH /api/orders/:id/unassign - remove assignment from an order
+ordersRouter.patch('/:id/unassign', requireAuth, requireRole('kitchen', 'admin'), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `UPDATE orders SET assigned_to=NULL, assigned_at=NULL WHERE id=$1 RETURNING *`,
+      [req.params.id]
+    );
+    await client.query('COMMIT');
+    if (!rows[0]) return res.status(404).json({ error: 'not found' });
+    res.json(rows[0]);
+  } catch (e) {
+    await client.query('ROLLBACK');
+    sendOrderError(res, e, 'unassign failed');
   } finally {
     client.release();
   }

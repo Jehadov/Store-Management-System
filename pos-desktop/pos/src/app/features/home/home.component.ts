@@ -7,7 +7,10 @@ import { ApiService, Product, Category, CartItem } from '../../core/api.service'
 import { COUNTRIES, normalizePhone, validPhone } from '../../core/phone.util';
 import { ContentService, NewsItem } from '../../core/content.service';
 import { LangService } from '../../core/lang.service';
+import { CacheService } from '../../core/cache.service';
 import { IconComponent } from '../../shared/icon.component';
+
+const CART_KEY = 'pos_cart';
 
 @Component({
   selector: 'app-home',
@@ -18,6 +21,7 @@ import { IconComponent } from '../../shared/icon.component';
 })
 export class HomeComponent implements OnInit {
   private api = inject(ApiService);
+  private cache = inject(CacheService);
   private content = inject(ContentService);
   private sanitizer = inject(DomSanitizer);
   lang = inject(LangService);
@@ -43,8 +47,10 @@ export class HomeComponent implements OnInit {
   placing = signal(false);
   orderError = signal('');
   placed = signal<{ order_number: number; total: number; earned: number; phone: string } | null>(null);
-  svc = signal<'pickup' | 'delivery'>('pickup');
+  svc = signal<'pickup' | 'delivery' | 'inRestaurant'>('pickup');
   pay = signal<'cash' | 'cliq'>('cash');
+  tables = signal<any[]>([]);
+  tableNumber = signal('');
   cust = signal({ code: '+962', name: '', phone: '', address: '', city: 'Amman', coupon: '', redeem: '' });
   setCust(field: 'code' | 'name' | 'phone' | 'address' | 'city' | 'coupon' | 'redeem', value: string) {
     this.cust.update((c) => ({ ...c, [field]: value }));
@@ -52,7 +58,7 @@ export class HomeComponent implements OnInit {
   countries = COUNTRIES;
 
   ngOnInit() {
-    // Same as Home.tsx: fetch categories once
+    this.cart.set(this.loadCart());
     this.api.categories().subscribe((c) => this.categories.set(c));
     this.loadProducts();
     // Promo videos managed in /admin -> Videos (GET /videos?active=true); hero plays the first one
@@ -63,6 +69,7 @@ export class HomeComponent implements OnInit {
     });
     // Active offers strip (auto discounts + coupons)
     this.api.activeOffers().subscribe((o) => this.offers.set(o || []));
+    this.api.tables().subscribe({ next: (t) => this.tables.set(t || []), error: () => undefined });
     // Same as VideoAndNews.tsx
     this.content.news().subscribe((n) => this.news.set(n));
   }
@@ -141,6 +148,11 @@ export class HomeComponent implements OnInit {
     const addons = (i.addOns || []).map((a) => a.id).sort().join(',');
     return `${i.id}|${i.variant?.name || ''}|${i.variant?.value || ''}|${addons}`;
   }
+  private loadCart(): CartItem[] {
+    try { const d = localStorage.getItem(CART_KEY); return d ? JSON.parse(d) : []; } catch { return []; }
+  }
+  private saveCart(cart: CartItem[]) { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
+
   quickAdd(p: any) {
     const item: CartItem = {
       id: p.id, name: this.nameOf(p), price: this.priceOf(p), quantity: 1,
@@ -151,16 +163,16 @@ export class HomeComponent implements OnInit {
     const idx = cart.findIndex((i) => this.lineKey(i) === key);
     if (idx >= 0) cart[idx] = { ...cart[idx], quantity: cart[idx].quantity + 1 };
     else cart.push(item);
-    this.cart.set(cart);
+    this.cart.set(cart); this.saveCart(cart);
   }
   bumpQty(idx: number, delta: number) {
     const cart = [...this.cart()];
     const qty = cart[idx].quantity + delta;
     if (qty <= 0) cart.splice(idx, 1);
     else cart[idx] = { ...cart[idx], quantity: qty };
-    this.cart.set(cart);
+    this.cart.set(cart); this.saveCart(cart);
   }
-  removeLine(idx: number) { this.cart.set(this.cart().filter((_, i) => i !== idx)); }
+  removeLine(idx: number) { const cart = this.cart().filter((_, i) => i !== idx); this.cart.set(cart); this.saveCart(cart); }
 
   openCart() { this.placed.set(null); this.orderError.set(''); this.checkoutMode.set(false); this.cartOpen.set(true); }
 
@@ -203,6 +215,7 @@ export class HomeComponent implements OnInit {
     this.placing.set(true);
     this.api.createOrder({
       serviceMethod: this.svc(),
+      tableNumber: this.svc() === 'inRestaurant' ? this.tableNumber() || undefined : undefined,
       payment: { method: this.pay() },
       shipping: { firstName: c.name, lastName: '', phoneNumber: fullPhone, address: c.address, city: c.city || 'Amman', country: 'Jordan' },
       deliveryMeta: { location: c.address, name: c.name, phoneNumber: fullPhone },
@@ -214,8 +227,15 @@ export class HomeComponent implements OnInit {
     }).subscribe({
       next: (r) => {
         this.placing.set(false);
+        const orderObj: any = {
+          id: r.orderId, order_number: r.order_number, total_amount: r.total,
+          created_at: new Date().toISOString(), items: this.cart(),
+          service_method: this.svc(), phone_number: fullPhone,
+          payment_method: this.pay(), payment_status: 'unpaid', status: 'pending'
+        };
+        this.cache.addToCache(orderObj, fullPhone);
         this.placed.set({ order_number: r.order_number, total: r.total, earned: (r as any).loyalty?.earned || 0, phone: fullPhone });
-        this.cart.set([]);
+        this.cart.set([]); this.saveCart([]);
       },
       error: (e) => {
         this.placing.set(false);

@@ -1,0 +1,26 @@
+
+> pos@0.0.0 start
+> ng serve --host 127.0.0.1
+
+> Building...
+√ Building...
+Initial chunk files | Names         |  Raw size
+main.js             | main          | 920.19 kB | 
+styles.css          | styles        | 284.76 kB | 
+
+                    | Initial total |   1.20 MB
+
+Application bundle generation complete. [6.913 seconds] - 2026-09-14T11:44:47.318Z
+
+Watch mode enabled. Watching for file changes...
+NOTE: Raw file sizes do not reflect development server per-request transformations.
+  ➜  Local:   http://127.0.0.1:4200/
+  ➜  press h + enter to show help
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Initial chunk files | Names |  Raw size
+main.js             | main  | 920.56 kB | 
+
+Application bundle generation complete. [4.026 seconds] - 2026-09-14T11:46:19.106Z
+
+Component update sent to client(s).

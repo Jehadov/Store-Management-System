@@ -1,0 +1,14 @@
+import { Pool } from 'pg';
+const p = new Pool({ connectionString: 'postgres://postgres:postgres@localhost:5432/restaurant' });
+const all = await p.query("SELECT order_number,status FROM orders ORDER BY created_at DESC");
+console.log('ALL ORDERS:', JSON.stringify(all.rows, null, 2));
+const pCount = await p.query("SELECT COUNT(*) as c FROM orders WHERE status = 'pending'");
+const prCount = await p.query("SELECT COUNT(*) as c FROM orders WHERE status = 'preparing'");
+const rCount = await p.query("SELECT COUNT(*) as c FROM orders WHERE status = 'ready'");
+const cCount = await p.query("SELECT COUNT(*) as c FROM orders WHERE status = 'cancelled'");
+console.log('Pending count:', pCount.rows[0].c);
+console.log('Preparing count:', prCount.rows[0].c);
+console.log('Ready count:', rCount.rows[0].c);
+console.log('Cancelled count:', cCount.rows[0].c);
+await p.end();
+await p.end();

@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { LangService } from '../core/lang.service';
 import { ShopService } from '../core/shop.service';
 import { ThemeService } from '../core/theme.service';
+import { AuthService } from '../core/auth.service';
 import { IconComponent } from './icon.component';
 
 @Component({
@@ -40,16 +41,32 @@ import { IconComponent } from './icon.component';
         <span class="side-toggle" (click)="menuOpen.set(!menuOpen())">☰</span>
       </div>
       <nav class="side-nav" [class.open]="menuOpen()">
-        <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="home" [size]="18" /> {{ lang.pick('Home', 'الرئيسية') }}</a>
-        <a routerLink="/track" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)">{{ lang.pick('Track order', 'تتبع الطلب') }}</a>
-        <a routerLink="/pos" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="pos" [size]="18" /> {{ lang.pick('POS', 'الكاشير') }}</a>
-        <a routerLink="/orders" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="orders" [size]="18" /> {{ lang.pick('Orders', 'الطلبات') }}</a>
-        <a routerLink="/kitchen" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="kitchen" [size]="18" /> {{ lang.pick('Kitchen', 'المطبخ') }}</a>
-        <a routerLink="/admin" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="admin" [size]="18" /> {{ lang.pick('Admin', 'الإدارة') }}</a>
+        @if (auth.role() === 'guest') {
+          <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="home" [size]="18" /> {{ lang.pick('Home', 'الرئيسية') }}</a>
+          <a routerLink="/track" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="track" [size]="18" /> {{ lang.pick('Track order', 'تتبع الطلب') }}</a>
+        }
+        @if (auth.can('cashier')) {
+          <a routerLink="/pos" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="pos" [size]="18" /> {{ lang.pick('POS', 'الكاشير') }}</a>
+          <a routerLink="/orders" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="orders" [size]="18" /> {{ lang.pick('Orders', 'الطلبات') }}</a>
+        }
+        @if (auth.can('kitchen')) {
+          <a routerLink="/kitchen" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="kitchen" [size]="18" /> {{ lang.pick('Kitchen', 'المطبخ') }}</a>
+          <a routerLink="/orders" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="orders" [size]="18" /> {{ lang.pick('Orders', 'الطلبات') }}</a>
+        }
+        @if (auth.can('admin')) {
+          <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="home" [size]="18" /> {{ lang.pick('Home', 'الرئيسية') }}</a>
+          <a routerLink="/pos" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="pos" [size]="18" /> {{ lang.pick('POS', 'الكاشير') }}</a>
+          <a routerLink="/orders" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="orders" [size]="18" /> {{ lang.pick('Orders', 'الطلبات') }}</a>
+          <a routerLink="/kitchen" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="kitchen" [size]="18" /> {{ lang.pick('Kitchen', 'المطبخ') }}</a>
+          <a routerLink="/admin" routerLinkActive="active" class="side-link" (click)="menuOpen.set(false)"><app-icon name="admin" [size]="18" /> {{ lang.pick('Admin', 'الإدارة') }}</a>
+        }
       </nav>
       <div class="side-foot" [class.open]="menuOpen()">
         <span class="side-link" (click)="theme.toggle()" title="Light / dark"><app-icon [name]="theme.theme() === 'dark' ? 'sun' : 'moon'" [size]="18" /></span>
         <span class="side-link" (click)="lang.toggle()">{{ lang.lang() === 'en' ? 'عربي' : 'English' }}</span>
+        @if (auth.user(); as u) {
+          <span class="side-link" (click)="logout()" title="Logout">👤 {{ u.username }} ⎋</span>
+        }
       </div>
     </aside>`,
 })
@@ -57,5 +74,13 @@ export class SidebarComponent {
   lang = inject(LangService);
   shop = inject(ShopService);
   theme = inject(ThemeService);
+  auth = inject(AuthService);
+  private router = inject(Router);
   menuOpen = signal(false);
+
+  logout() {
+    this.auth.logout();
+    this.menuOpen.set(false);
+    this.router.navigate(['/']);
+  }
 }

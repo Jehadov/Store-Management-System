@@ -169,9 +169,13 @@ adminRouter.get('/stats/top-products', requireAuth, requireRole('admin'), async 
     const year = Number(req.query.year);
     const month = Number(req.query.month);
     const preset = String(req.query.preset || '');
+    const days = Math.min(Math.max(Number(req.query.days) || 0, 0), 365);
     let cond = '';
     const params: any[] = [limit];
-    if (year && month >= 1 && month <= 12) {
+    if (days > 0) {
+      params.push(days);
+      cond = `AND o.created_at >= CURRENT_DATE - ($2 || ' days')::interval + interval '1 day'`;
+    } else if (year && month >= 1 && month <= 12) {
       params.push(year, month);
       cond = `AND o.created_at >= make_date($2, $3, 1) AND o.created_at < make_date($2, $3, 1) + interval '1 month'`;
     } else if (year) {
